@@ -1,0 +1,64 @@
+using System.Collections;
+using System.Reflection;
+using LightSpeedDbClient.Attributes;
+using LightSpeedDbClient.Exceptions;
+
+namespace LightSpeedDbClient.Reflections;
+
+public class TableReflection : ITableReflection
+{
+
+    private readonly string _name;
+    private readonly string _queryName;
+    private readonly Type _type;
+
+    private readonly Dictionary<string, IColumnReflection> _columns;
+
+    public TableReflection(Type type)
+    {
+        
+        _columns = new Dictionary<string, IColumnReflection>();
+        _type = type;
+        _name = type.Name;
+        
+        ModelAttribute? model = _type.GetCustomAttribute<ModelAttribute>();
+        if (model == null)
+            throw new ClassIsNotAModelException();
+
+        _queryName = model.Table;
+
+        FillColumns();
+
+    }
+    
+    private void FillColumns()
+    {
+
+        PropertyInfo[] properties = _type.GetProperties();
+        foreach (var property in properties)
+        {
+            ColumnAttribute? column = property.GetCustomAttribute<ColumnAttribute>();
+            if (column != null)
+            {
+                ColumnReflection columnReflection = new(property, column);
+                if (_columns.ContainsKey(columnReflection.Name()))
+                {
+                    throw new ReflectionException();
+                }
+                _columns.Add(columnReflection.Name(), columnReflection);
+            }
+        }
+        
+    }
+
+    public string QueryName()
+    { 
+        return _queryName;
+    }
+
+    public IEnumerable<IColumnReflection> Columns()
+    {
+        return _columns.Values;
+    }
+    
+}
