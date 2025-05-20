@@ -13,11 +13,13 @@ public class TableReflection : ITableReflection
     private readonly Type _type;
 
     private readonly Dictionary<string, IColumnReflection> _columns;
-
+    private readonly Dictionary<string, IColumnReflection> _partsOfPrimaryKey;
+    
     public TableReflection(Type type)
     {
         
         _columns = new Dictionary<string, IColumnReflection>();
+        _partsOfPrimaryKey = new Dictionary<string, IColumnReflection>();
         _type = type;
         _name = type.Name;
         
@@ -28,6 +30,7 @@ public class TableReflection : ITableReflection
         _queryName = model.Table;
 
         FillColumns();
+        FillKeys();
 
     }
     
@@ -50,6 +53,17 @@ public class TableReflection : ITableReflection
         }
         
     }
+    
+    private void FillKeys()
+    {
+        
+        foreach (var column in _columns.Values)
+        { 
+            if (column.IsPartOfPrimaryKey())
+                _partsOfPrimaryKey.Add(column.Name(), column);
+        }
+        
+    }
 
     public string QueryName()
     { 
@@ -60,5 +74,19 @@ public class TableReflection : ITableReflection
     {
         return _columns.Values;
     }
-    
+
+    public IEnumerable<IColumnReflection> PartsOfPrimaryKey()
+    {
+        
+        List<IColumnReflection> partsOfPrimaryKey = new();
+
+        foreach (var column in _columns.Values)
+        {
+            if (column.IsPartOfPrimaryKey())
+                partsOfPrimaryKey.Add(column);
+        }
+
+        return partsOfPrimaryKey;
+
+    }
 }

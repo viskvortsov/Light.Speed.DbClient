@@ -8,4 +8,5 @@ public interface IColumnReflection
     string QueryName();
     Type Type();
     PropertyInfo Property();
+    bool IsPartOfPrimaryKey();
 }

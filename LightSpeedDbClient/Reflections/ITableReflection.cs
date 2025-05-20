@@ -5,4 +5,5 @@ public interface ITableReflection
     
     string QueryName();
     IEnumerable<IColumnReflection> Columns();
+    IEnumerable<IColumnReflection> PartsOfPrimaryKey();
 }

@@ -61,4 +61,9 @@ public class PostgresqlSelectListQuery: IQuery
         
     }
 
+    public IQueryParameters Parameters()
+    {
+        return new QueryParameters();
+    }
+    
 }

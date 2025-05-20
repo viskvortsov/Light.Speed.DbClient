@@ -22,7 +22,10 @@ public class Tests
         IEnumerable<Currency> currencies = await manager.GetListAsync(1, 100);
         
         Currency currency = manager.Create();
-        
+        currency.Id = Guid.NewGuid();
+        currency.Name = "Euro";
+        currency.Deleted = "dj";
+        await manager.SaveAsync(currency);
         
         await transaction.CommitAsync();
 

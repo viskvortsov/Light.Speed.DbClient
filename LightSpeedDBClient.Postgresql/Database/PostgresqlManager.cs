@@ -1,28 +1,15 @@
-using System.Text;
+
 using LightSpeedDbClient.Database;
+using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 using Npgsql;
+using NpgsqlTypes;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
 public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
 {
-    
-    private static readonly Dictionary<Type, Func<NpgsqlDataReader, int, object>> TypeReaders = new()
-    {
-        { typeof(Guid),    (reader, index) => reader.GetGuid(index) },
-        { typeof(string),  (reader, index) => reader.GetString(index) },
-        { typeof(bool),    (reader, index) => reader.GetBoolean(index) },
-        { typeof(byte),    (reader, index) => reader.GetByte(index) },
-        { typeof(DateTime),    (reader, index) => reader.GetDateTime(index) },
-        { typeof(decimal),    (reader, index) => reader.GetDecimal(index) },
-        { typeof(double),    (reader, index) => reader.GetDouble(index) },
-        { typeof(float),    (reader, index) => reader.GetFloat(index) },
-        { typeof(short),    (reader, index) => reader.GetInt16(index) },
-        { typeof(int),    (reader, index) => reader.GetInt32(index) },
-        { typeof(long),    (reader, index) => reader.GetInt64(index) }
-    };
     
     public PostgresqlManager(IConnection connection) : base(connection){}
     
@@ -67,9 +54,40 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         throw new NotImplementedException();
     }
 
-    public override Task<E> SaveAsync(E element)
+    public override async Task<E> SaveAsync(E element)
     {
-        throw new NotImplementedException();
+        
+        E? savedElement = default(E);
+        
+        PostgresqlSaveQuery<E> saveQuery = new (Reflection, element);
+
+        PostgresqlTransaction? transaction = null;
+        if (Transaction != null)
+        {
+            transaction = (PostgresqlTransaction)Transaction;
+        }
+
+        await using PostgresqlCommand cmd = new PostgresqlCommand(saveQuery, (PostgresqlConnection)Connection, transaction);
+
+        try
+        {
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                savedElement = MapToModel(reader);
+            }
+        } 
+        catch (Exception e)
+        {
+            throw new DatabaseSaveException($"Error saving element", e);
+        }
+        
+        
+        if (savedElement == null)
+            throw new DatabaseSaveException($"Error saving element");
+
+        return savedElement;
+        
     }
 
     public override Task DeleteAsync()
@@ -96,7 +114,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
 
     private object MapToValue(NpgsqlDataReader reader, int index, Type type)
     {
-        if (TypeReaders.TryGetValue(type, out var func))
+        if (PostgresqlDefaultSettings.TypeReaders.TryGetValue(type, out var func))
         {
             return func(reader, index);
         }
