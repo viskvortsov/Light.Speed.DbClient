@@ -8,7 +8,6 @@ public abstract class DatabaseObject : IDatabaseObject
 {
     private readonly DatabaseObjectReflection _reflection;
     private readonly IKey _key;
-    private readonly IObjectArrays _arrays;
 
     protected DatabaseObject(IKey key)
     {

@@ -11,16 +11,27 @@ public class ColumnReflection : IColumnReflection
     private readonly Type _type;
     private readonly PropertyInfo _property;
     private readonly bool _isPartOfPrimaryKey;
+    private readonly bool _isPartOfOwnerKey;
+    private readonly string _relation;
     
-    internal ColumnReflection(PropertyInfo property, ColumnAttribute column)
+    internal ColumnReflection(PropertyInfo property)
     {
         
-        PrimaryKeyAttribute? key = property.GetCustomAttribute<PrimaryKeyAttribute>();
+        PrimaryKeyAttribute? primaryKey = property.GetCustomAttribute<PrimaryKeyAttribute>();
         
         _isPartOfPrimaryKey = false;
-        if (key != null)
+        if (primaryKey != null)
             _isPartOfPrimaryKey = true;
         
+        OwnerKeyAttribute? ownerKey = property.GetCustomAttribute<OwnerKeyAttribute>();
+        
+        _isPartOfOwnerKey = false;
+        if (ownerKey != null)
+        {
+            _isPartOfOwnerKey = true;
+            _relation = ownerKey.Relation;
+        }
+
         _name = property.Name.ToLower();
         _queryName = property.Name.ToLower();
         _type = property.PropertyType;
@@ -43,6 +54,11 @@ public class ColumnReflection : IColumnReflection
         return _type;
     }
 
+    public string Relation()
+    {
+        return _relation;
+    }
+
     public PropertyInfo Property()
     {
         return _property;
@@ -51,5 +67,10 @@ public class ColumnReflection : IColumnReflection
     public bool IsPartOfPrimaryKey()
     {
         return _isPartOfPrimaryKey;
+    }
+
+    public bool IsPartOfOwnerKey()
+    {
+        return _isPartOfOwnerKey;
     }
 }

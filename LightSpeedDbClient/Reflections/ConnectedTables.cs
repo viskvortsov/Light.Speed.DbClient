@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Reflection;
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Exceptions;
@@ -15,6 +16,8 @@ public class ConnectedTables : IConnectedTables
         ModelAttribute? model = type.GetCustomAttribute<ModelAttribute>();
         if (model == null)
             throw new ClassIsNotAModelException();
+
+        _tables = new Dictionary<string, ITableReflection>();
         
         PropertyInfo[] properties = type.GetProperties();
         foreach (var property in properties)
@@ -22,7 +25,8 @@ public class ConnectedTables : IConnectedTables
             TableAttribute? table = property.GetCustomAttribute<TableAttribute>();
             if (table != null)
             {
-                TableReflection tableReflection = new TableReflection(table.GetType());
+                Type rowType = property.PropertyType.GetInterface("IObjectTable`1").GetGenericArguments()[0];
+                TableReflection tableReflection = new TableReflection(rowType);
                 if (_tables.ContainsKey(tableReflection.Name()))
                 {
                     throw new ReflectionException();
@@ -32,6 +36,16 @@ public class ConnectedTables : IConnectedTables
         }
         
         
+    }
+
+    public IEnumerator<ITableReflection> GetEnumerator()
+    {
+        return _tables.Values.GetEnumerator();
+    }
+
+    IEnumerator IEnumerable.GetEnumerator()
+    {
+        return GetEnumerator();
     }
     
 }

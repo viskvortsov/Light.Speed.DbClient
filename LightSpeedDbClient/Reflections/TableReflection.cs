@@ -15,12 +15,14 @@ public class TableReflection : ITableReflection
     
     private readonly Dictionary<string, IColumnReflection> _columns;
     private readonly Dictionary<string, IColumnReflection> _partsOfPrimaryKey;
+    private readonly Dictionary<string, IColumnReflection> _partsOfOwnerKey;
     
     public TableReflection(Type type)
     {
         
         _columns = new Dictionary<string, IColumnReflection>();
         _partsOfPrimaryKey = new Dictionary<string, IColumnReflection>();
+        _partsOfOwnerKey = new Dictionary<string, IColumnReflection>();
         _type = type;
         _name = type.Name.ToLower();
         
@@ -31,7 +33,8 @@ public class TableReflection : ITableReflection
         _queryName = model.Table;
 
         FillColumns();
-        FillKeys();
+        FillPrimaryKeys();
+        FillOwnerKeys();
 
     }
     
@@ -44,7 +47,7 @@ public class TableReflection : ITableReflection
             ColumnAttribute? column = property.GetCustomAttribute<ColumnAttribute>();
             if (column != null)
             {
-                ColumnReflection columnReflection = new(property, column);
+                ColumnReflection columnReflection = new(property);
                 if (_columns.ContainsKey(columnReflection.Name()))
                 {
                     throw new ReflectionException();
@@ -55,13 +58,24 @@ public class TableReflection : ITableReflection
         
     }
     
-    private void FillKeys()
+    private void FillPrimaryKeys()
     {
         
         foreach (var column in _columns.Values)
         { 
             if (column.IsPartOfPrimaryKey())
                 _partsOfPrimaryKey.Add(column.Name(), column);
+        }
+        
+    }
+    
+    private void FillOwnerKeys()
+    {
+        
+        foreach (var column in _columns.Values)
+        { 
+            if (column.IsPartOfOwnerKey())
+                _partsOfOwnerKey.Add(column.Name(), column);
         }
         
     }
@@ -95,4 +109,20 @@ public class TableReflection : ITableReflection
         return partsOfPrimaryKey;
 
     }
+    
+    public IEnumerable<IColumnReflection> PartsOfOwnerKey()
+    {
+        
+        List<IColumnReflection> partsOfOwnerKey = new();
+
+        foreach (var column in _columns.Values)
+        {
+            if (column.IsPartOfOwnerKey())
+                partsOfOwnerKey.Add(column);
+        }
+
+        return partsOfOwnerKey;
+
+    }
+    
 }

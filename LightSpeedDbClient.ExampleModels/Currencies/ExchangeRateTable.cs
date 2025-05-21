@@ -1,14 +1,17 @@
 using System.Collections;
+using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Models;
 
 namespace ExampleModels.Currencies;
 
-public class ExchangeRateTable : IObjectArray
+public class ExchangeRateTable : IObjectTable<ExchangeRateRow>
 {
     
-    public IEnumerator<IObjectArrayElement> GetEnumerator()
+    private readonly List<ExchangeRateRow> _rows = new();
+    
+    public IEnumerator<ExchangeRateRow> GetEnumerator()
     {
-        throw new NotImplementedException();
+        return _rows.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()

@@ -43,13 +43,15 @@ public class PostgresqlSelectByKeyQuery: IQuery
         sb.Append($" ");
 
         List<IKeyElement> keyElements = _key.KeyElements().ToList();
-        
+
+        int x = 0;
         for (int i = 0; i < keyElements.Count; i++)
         {
             
             var keyPart = keyElements[i];
             
-            string parameterName = $"@{i}";
+            string parameterName = $"@{x}";
+            x++;
             var value = keyPart.Value();
             var type = value.GetType();
             
@@ -59,6 +61,56 @@ public class PostgresqlSelectByKeyQuery: IQuery
             if (i < keyElements.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
+            
+        }
+        
+        sb.Append(";");
+        sb.Append(" ");
+        
+        List<ITableReflection> connectedTables = _reflection.ConnectedTables().ToList();
+        
+        for (int k = 0; k < connectedTables.Count; k++)
+        {
+            
+            var connectedTable = connectedTables[k];
+            
+            sb.Append($"SELECT");
+            sb.Append($" ");
+            
+            var connectedTableColumns = connectedTable.Columns().ToList();
+            for (int i = 0; i < connectedTableColumns.Count; i++)
+            {
+                var column = connectedTableColumns[i];
+                sb.Append($"{connectedTable.QueryName()}.{column.QueryName()} as {column.QueryName()}");
+                if (i < connectedTableColumns.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+            }
+            sb.Append($"FROM {connectedTable.QueryName()} as {connectedTable.QueryName()}");
+            sb.Append($" ");
+            sb.Append($"WHERE");
+            sb.Append($" ");
+            
+            List<IColumnReflection> ownerKeys = connectedTable.PartsOfOwnerKey().ToList();
+        
+            for (int i = 0; i < ownerKeys.Count; i++)
+            {
+            
+                var keyPart = ownerKeys[i];
+            
+                string parameterName = $"@{x}";
+                x++;
+                var value = _key.GetValue(keyPart.Relation());
+                var type = value.GetType();
+            
+                _parameters.Add(new QueryParameter(parameterName, type, value));
+            
+                sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {parameterName}");
+                if (i < keyElements.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+            
+            }
             
         }
         

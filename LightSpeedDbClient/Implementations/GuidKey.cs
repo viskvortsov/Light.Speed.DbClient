@@ -26,5 +26,17 @@ public class GuidKey<E> : IKey where E : IDatabaseElement
     {
         return new List<IKeyElement>() {new KeyElement(_column, _id)};
     }
+
+    public object GetValue(string name)
+    {
+
+        if (name != _column.Name())
+        {
+            throw new ReflectionException();
+        }
+        
+        return _id;
+        
+    }
     
 }

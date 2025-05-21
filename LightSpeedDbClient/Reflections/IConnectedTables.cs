@@ -1,6 +1,6 @@
 namespace LightSpeedDbClient.Reflections;
 
-public interface IConnectedTables
+public interface IConnectedTables : IEnumerable<ITableReflection>
 {
     
 }
