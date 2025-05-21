@@ -10,5 +10,10 @@ public class DatabaseObjectReflection
     {
         _mainTableReflection = new TableReflection(type);
     }
+    
+    public IColumnReflection GetColumnReflection(string name)
+    {
+        return _mainTableReflection.Columns().SingleOrDefault(x => x.Name() == name.ToLower());
+    }
 
 }

@@ -22,7 +22,7 @@ public class TableReflection : ITableReflection
         _columns = new Dictionary<string, IColumnReflection>();
         _partsOfPrimaryKey = new Dictionary<string, IColumnReflection>();
         _type = type;
-        _name = type.Name;
+        _name = type.Name.ToLower();
         
         ModelAttribute? model = _type.GetCustomAttribute<ModelAttribute>();
         if (model == null)

@@ -24,7 +24,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         
         var elements = new List<E>();
         
-        PostgresqlSelectListQuery selectListQuery = new PostgresqlSelectListQuery(Reflection, page, limit);
+        PostgresqlSelectListQuery selectListQuery = new PostgresqlSelectListQuery(filters, Reflection, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)

@@ -12,8 +12,10 @@ public class PostgresqlSelectListQuery: IQuery
     private readonly int? _page;
     private readonly int? _limit;
     private readonly bool _usePagination;
+    private readonly QueryParameters _parameters;
+    private readonly IEnumerable<IFilter> _filters;
     
-    public PostgresqlSelectListQuery(DatabaseObjectReflection reflection, int? page = null, int? limit = null)
+    public PostgresqlSelectListQuery(IEnumerable<IFilter> filters, DatabaseObjectReflection reflection, int? page = null, int? limit = null)
     {
         _reflection = reflection;
         _page = page;
@@ -26,10 +28,14 @@ public class PostgresqlSelectListQuery: IQuery
             limit = 10; // TODO
         
         _usePagination = page != null && limit != null;
+        _filters = filters;
+        _parameters = new ();
     }
 
     public string GetQueryText()
     {
+        
+        _parameters.Clear();
 
         StringBuilder sb = new StringBuilder();
         sb.Append($"SELECT");
@@ -46,6 +52,31 @@ public class PostgresqlSelectListQuery: IQuery
         }
         sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
 
+        if (_filters.Any())
+        {
+            sb.Append($" ");
+            sb.Append($"WHERE");
+            sb.Append($" ");
+            List<IFilter> filters = _filters.ToList();
+            for (int i = 0; i < filters.Count; i++)
+            {
+            
+                var filter = filters[i];
+            
+                string parameterName = $"@{i}";
+                var value = filter.Value();
+                var type = value.GetType();
+            
+                _parameters.Add(new QueryParameter(parameterName, type, value));
+            
+                sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} = {parameterName}");
+                if (i < filters.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+            
+            }
+        }
+        
         if (_usePagination)
         {
             
@@ -63,7 +94,7 @@ public class PostgresqlSelectListQuery: IQuery
 
     public IQueryParameters Parameters()
     {
-        return new QueryParameters();
+        return _parameters;
     }
     
 }

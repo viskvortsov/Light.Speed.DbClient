@@ -21,8 +21,8 @@ public class ColumnReflection : IColumnReflection
         if (key != null)
             _isPartOfPrimaryKey = true;
         
-        _name = property.Name;
-        _queryName = property.Name;
+        _name = property.Name.ToLower();
+        _queryName = property.Name.ToLower();
         _type = property.PropertyType;
         _property = property;
 

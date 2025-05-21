@@ -30,6 +30,12 @@ public class Tests
         Currency currency3 = await manager.GetByKeyAsync(new GuidKey<Currency>(currency2.Id));
         Currency currency4 = await manager.SaveAsync(currency3);
         
+        List<IFilter> filters = new List<IFilter>()
+        {
+            new Filter<Currency>("name", ComparisonOperator.Equals, "Euro")
+        };
+        IEnumerable<Currency> currencies2 = await manager.GetListAsync(filters,1, 100);
+        
         await transaction.CommitAsync();
 
         await transaction.DisposeAsync();
