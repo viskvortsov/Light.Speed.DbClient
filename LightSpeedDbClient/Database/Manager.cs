@@ -25,10 +25,15 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
         return (E) ClientSettings.GetConstructor(typeof(E)).Invoke(new object[]{});;
     }
 
+    public abstract Task<IEnumerable<E>>
+        GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);
     public abstract Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null);
+    public abstract Task<int> CountAsync(IEnumerable<IFilter> filters);
     public abstract Task<int> CountAsync();
     public abstract Task<E> GetByKeyAsync(IKey key);
     public abstract Task<E> SaveAsync(E element);
+    public abstract Task DeleteAsync(IEnumerable<IFilter> filters);
+    public abstract Task DeleteByKeyAsync(IKey key);
     public abstract Task DeleteAsync();
 
     public void Dispose()

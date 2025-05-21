@@ -19,7 +19,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
 
     public PostgresqlManager(IConnection connection, ITransaction transaction) : base(connection, transaction){}
 
-    public override async Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null)
+    public override async Task<IEnumerable<E>> GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null)
     {
         
         var elements = new List<E>();
@@ -41,7 +41,22 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         }
 
         return elements;
+        
+    }
 
+    public override async Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null)
+    {
+        return await GetListAsync(new List<IFilter>(), page, limit);
+    }
+    
+    public override async Task<int> CountAsync()
+    {
+        return await CountAsync(new List<IFilter>());
+    }
+
+    public override async Task<int> CountAsync(IEnumerable<IFilter> filters)
+    {
+        throw new NotImplementedException();
     }
 
     public override async Task<E> GetByKeyAsync(IKey key)
@@ -80,10 +95,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         
     }
 
-    public override Task<int> CountAsync()
-    {
-        throw new NotImplementedException();
-    }
+    
 
     public override async Task<E> SaveAsync(E element)
     {
@@ -120,12 +132,23 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         return savedElement;
         
     }
+    
+    public override async Task DeleteAsync()
+    {
+        await DeleteAsync(new List<IFilter>()); 
+    }
 
-    public override Task DeleteAsync()
+
+    public override async Task DeleteAsync(IEnumerable<IFilter> filters)
     {
         throw new NotImplementedException();
     }
 
+    public override async Task DeleteByKeyAsync(IKey key)
+    {
+        throw new NotImplementedException();
+    }
+    
     private E MapToModel(NpgsqlDataReader reader)
     {
         
