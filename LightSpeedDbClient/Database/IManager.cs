@@ -7,8 +7,8 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
     
     E Create();
     Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null);
+    Task<E> GetByKeyAsync(IKey key);
     Task<int> CountAsync();
-    Task<E> GetAsync();
     Task<E> SaveAsync(E element);
     Task DeleteAsync();
     

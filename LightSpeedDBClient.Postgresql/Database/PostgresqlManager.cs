@@ -44,12 +44,43 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
 
     }
 
-    public override Task<int> CountAsync()
+    public override async Task<E> GetByKeyAsync(IKey key)
     {
-        throw new NotImplementedException();
+
+        E receivedElement = default(E);
+        
+        PostgresqlSelectByKeyQuery selectByKeyQuery = new (Reflection, key);
+
+        PostgresqlTransaction? transaction = null;
+        if (Transaction != null)
+        {
+            transaction = (PostgresqlTransaction)Transaction;
+        }
+
+        await using PostgresqlCommand cmd = new PostgresqlCommand(selectByKeyQuery, (PostgresqlConnection)Connection, transaction);
+
+        try
+        {
+            await using var reader = await cmd.ExecuteReaderAsync();
+            if (await reader.ReadAsync())
+            {
+                receivedElement = MapToModel(reader);
+            }
+        } 
+        catch (Exception e)
+        {
+            throw new DatabaseException($"Error getting element by key", e);
+        }
+        
+        
+        if (receivedElement == null)
+            throw new DatabaseNotFoundException($"Error saving element");
+
+        return receivedElement;
+        
     }
 
-    public override Task<E> GetAsync()
+    public override Task<int> CountAsync()
     {
         throw new NotImplementedException();
     }

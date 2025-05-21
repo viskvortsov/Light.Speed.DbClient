@@ -17,6 +17,11 @@ public class QueryParameters : IQueryParameters
         _parameters.Add(parameter);
     }
 
+    public void Clear()
+    {
+        _parameters.Clear();
+    }
+
     IEnumerator IEnumerable.GetEnumerator()
     {
         return GetEnumerator();

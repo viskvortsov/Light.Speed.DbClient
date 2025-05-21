@@ -1,5 +1,6 @@
 using ExampleModels.Currencies;
 using LightSpeedDbClient.Database;
+using LightSpeedDbClient.Implementations;
 using LightSpeedDBClient.Postgresql.Database;
 
 namespace LightSpeedDbClient.Tests;
@@ -25,7 +26,9 @@ public class Tests
         currency.Id = Guid.NewGuid();
         currency.Name = "Euro";
         currency.Deleted = "dj";
-        await manager.SaveAsync(currency);
+        Currency currency2 = await manager.SaveAsync(currency);
+        Currency currency3 = await manager.GetByKeyAsync(new GuidKey<Currency>(currency2.Id));
+        Currency currency4 = await manager.SaveAsync(currency3);
         
         await transaction.CommitAsync();
 

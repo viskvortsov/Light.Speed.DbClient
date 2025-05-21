@@ -24,6 +24,8 @@ public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseElement
     public string GetQueryText()
     {
         
+        _parameters.Clear();
+        
         StringBuilder columnNamesBuilder = new StringBuilder();
         StringBuilder parameterNamesBuilder = new StringBuilder();
         StringBuilder keyBuilder = new StringBuilder();

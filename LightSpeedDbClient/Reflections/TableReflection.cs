@@ -2,6 +2,7 @@ using System.Collections;
 using System.Reflection;
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Exceptions;
+using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Reflections;
 
@@ -11,7 +12,7 @@ public class TableReflection : ITableReflection
     private readonly string _name;
     private readonly string _queryName;
     private readonly Type _type;
-
+    
     private readonly Dictionary<string, IColumnReflection> _columns;
     private readonly Dictionary<string, IColumnReflection> _partsOfPrimaryKey;
     
