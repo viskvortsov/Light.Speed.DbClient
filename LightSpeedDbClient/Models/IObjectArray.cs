@@ -1,6 +1,6 @@
 namespace LightSpeedDbClient.Models;
 
-public class IObjectArray
+public interface IObjectArray : IEnumerable<IObjectArrayElement>
 {
     
 }

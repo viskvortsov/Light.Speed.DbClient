@@ -66,6 +66,11 @@ public class TableReflection : ITableReflection
         
     }
 
+    public string Name()
+    {
+        return _name;
+    }
+
     public string QueryName()
     { 
         return _queryName;
