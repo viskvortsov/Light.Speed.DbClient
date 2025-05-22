@@ -11,11 +11,11 @@ public class ExchangeRateRow : IObjectTableElement
     [Column]
     public Guid Id { get; set; }
     
-    [Column]
+    [Column(name: "row_number")]
     public int RowNumber { get; set; }
     
     [OwnerKey(relation: "id")]
-    [Column]
+    [Column(name: "owner_id")]
     public Guid OwnerId { get; set; }
     
 }

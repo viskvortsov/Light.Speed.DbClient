@@ -7,5 +7,7 @@ public enum ComparisonOperator
     GreaterThan,
     GreaterThanOrEquals,
     LessThan,
-    LessThanOrEquals
+    LessThanOrEquals,
+    In
+    
 }

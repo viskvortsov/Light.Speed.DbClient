@@ -47,6 +47,11 @@ internal class PostgresqlCommand: IDisposable, IAsyncDisposable
     {
         return await _innerCommand.ExecuteReaderAsync();
     }
+    
+    internal async Task<int> ExecuteNonQueryAsync()
+    {
+        return await _innerCommand.ExecuteNonQueryAsync();
+    }
 
     public void Dispose()
     {

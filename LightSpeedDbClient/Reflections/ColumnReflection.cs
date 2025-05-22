@@ -31,9 +31,16 @@ public class ColumnReflection : IColumnReflection
             _isPartOfOwnerKey = true;
             _relation = ownerKey.Relation;
         }
+        
+        ColumnAttribute? column = property.GetCustomAttribute<ColumnAttribute>();
+        
+        _queryName = property.Name.ToLower();
+        if (column != null && column.Name != null)
+        {
+            _queryName = column.Name.ToLower();
+        }
 
         _name = property.Name.ToLower();
-        _queryName = property.Name.ToLower();
         _type = property.PropertyType;
         _property = property;
 

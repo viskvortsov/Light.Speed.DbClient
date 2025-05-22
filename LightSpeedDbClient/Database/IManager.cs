@@ -12,7 +12,8 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
     Task<int> CountAsync(IEnumerable<IFilter> filters);
     Task<int> CountAsync();
     Task<E> SaveAsync(E element);
-    Task DeleteAsync(IEnumerable<IFilter> filters);
-    Task DeleteByKeyAsync(IKey key);
+    Task<int> DeleteAsync();
+    Task<int> DeleteAsync(IEnumerable<IFilter> filters);
+    Task<int> DeleteByKeyAsync(IKey key);
     
 }

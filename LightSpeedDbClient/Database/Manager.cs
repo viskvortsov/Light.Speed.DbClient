@@ -32,9 +32,9 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
     public abstract Task<int> CountAsync();
     public abstract Task<E> GetByKeyAsync(IKey key);
     public abstract Task<E> SaveAsync(E element);
-    public abstract Task DeleteAsync(IEnumerable<IFilter> filters);
-    public abstract Task DeleteByKeyAsync(IKey key);
-    public abstract Task DeleteAsync();
+    public abstract Task<int> DeleteAsync(IEnumerable<IFilter> filters);
+    public abstract Task<int> DeleteByKeyAsync(IKey key);
+    public abstract Task<int> DeleteAsync();
 
     public void Dispose()
     {

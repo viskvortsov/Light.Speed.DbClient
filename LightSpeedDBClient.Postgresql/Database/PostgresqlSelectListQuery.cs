@@ -69,9 +69,14 @@ public class PostgresqlSelectListQuery: IQuery
             
                 _parameters.Add(new QueryParameter(parameterName, type, value));
             
-                sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} = {parameterName}");
+                sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (i < filters.Count - 1)
-                    sb.Append(", ");
+                {
+                    sb.Append(" ");
+                    sb.Append("AND");
+                    sb.Append(" ");
+                }
+
                 sb.Append(" ");
             
             }

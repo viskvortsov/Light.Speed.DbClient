@@ -94,9 +94,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         return receivedElement;
         
     }
-
     
-
     public override async Task<E> SaveAsync(E element)
     {
         
@@ -133,18 +131,24 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         
     }
     
-    public override async Task DeleteAsync()
+    public override async Task<int> DeleteAsync()
     {
-        await DeleteAsync(new List<IFilter>()); 
+        return await DeleteAsync(new List<IFilter>()); 
+    }
+    
+    public override async Task<int> DeleteAsync(IEnumerable<IFilter> filters)
+    {
+        PostgresqlDeleteListQuery selectListQuery = new PostgresqlDeleteListQuery(filters, Reflection);
+        PostgresqlTransaction? transaction = null;
+        if (Transaction != null)
+        {
+            transaction = (PostgresqlTransaction)Transaction;
+        }
+        await using PostgresqlCommand cmd = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
+        return await cmd.ExecuteNonQueryAsync();
     }
 
-
-    public override async Task DeleteAsync(IEnumerable<IFilter> filters)
-    {
-        throw new NotImplementedException();
-    }
-
-    public override async Task DeleteByKeyAsync(IKey key)
+    public override async Task<int> DeleteByKeyAsync(IKey key)
     {
         throw new NotImplementedException();
     }

@@ -18,23 +18,59 @@ public class Tests
         IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
         IConnection connection = await db.OpenConnectionAsync();
         ITransaction transaction = await connection.BeginTransactionAsync();
-        
+
         IManager<Currency> manager = new PostgresqlManager<Currency>(connection, transaction);
+        await manager.DeleteAsync();
+        
         IEnumerable<Currency> currencies = await manager.GetListAsync(1, 100);
         
+        Assert.NotNull(currencies);
+        Assert.That(currencies.Count(), Is.EqualTo(0));
+        
         Currency currency = manager.Create();
+        Assert.NotNull(currency);
+        
         currency.Id = Guid.NewGuid();
         currency.Name = "Euro";
         currency.Deleted = "dj";
         Currency currency2 = await manager.SaveAsync(currency);
+        
+        Assert.NotNull(currency2);
+        Assert.That(currency2.Id, Is.EqualTo(currency.Id));
+        Assert.That(currency2.Name, Is.EqualTo(currency.Name));
+        Assert.That(currency2.Deleted, Is.EqualTo(currency.Deleted));
+        
         Currency currency3 = await manager.GetByKeyAsync(new GuidKey<Currency>(currency2.Id));
+        
+        Assert.NotNull(currency3);
+        Assert.That(currency3.Id, Is.EqualTo(currency2.Id));
+        Assert.That(currency3.Name, Is.EqualTo(currency2.Name));
+        Assert.That(currency3.Deleted, Is.EqualTo(currency2.Deleted));
+        
         Currency currency4 = await manager.SaveAsync(currency3);
+        
+        Assert.NotNull(currency4);
+        Assert.That(currency4.Id, Is.EqualTo(currency3.Id));
+        Assert.That(currency4.Name, Is.EqualTo(currency3.Name));
+        Assert.That(currency4.Deleted, Is.EqualTo(currency3.Deleted));
         
         List<IFilter> filters = new List<IFilter>()
         {
-            new Filter<Currency>("name", ComparisonOperator.Equals, "Euro")
+            new Filter<Currency>("name", ComparisonOperator.Equals, "Euro"),
+            new Filter<Currency>("deleted", ComparisonOperator.NotEquals, "dj")
         };
         IEnumerable<Currency> currencies2 = await manager.GetListAsync(filters,1, 100);
+        Assert.NotNull(currencies2);
+        Assert.That(currencies2.Count(), Is.EqualTo(0));
+        
+        List<IFilter> filters2 = new List<IFilter>()
+        {
+            new Filter<Currency>("name", ComparisonOperator.Equals, "Euro"),
+            new Filter<Currency>("deleted", ComparisonOperator.Equals, "dj")
+        };
+        IEnumerable<Currency> currencies3 = await manager.GetListAsync(filters2,1, 100);
+        Assert.NotNull(currencies3);
+        Assert.That(currencies3.Count(), Is.EqualTo(1));
         
         await transaction.CommitAsync();
 
