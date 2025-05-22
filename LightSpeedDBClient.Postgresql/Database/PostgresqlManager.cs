@@ -1,10 +1,9 @@
 
+using System.Reflection;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
-using Npgsql;
-using NpgsqlTypes;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
@@ -36,7 +35,8 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            E element = MapToModel(reader);
+            E element = Create();
+            element = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
             elements.Add(element);
         }
 
@@ -79,8 +79,30 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                receivedElement = MapToModel(reader);
+                receivedElement = Create();
+                receivedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(receivedElement);
             }
+
+            foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
+            {
+                if (await reader.NextResultAsync())
+                {
+                    List<IDatabaseElement> list = new ();
+                    while (await reader.ReadAsync())
+                    {
+                        IDatabaseElement row = (IDatabaseElement) CreateRow(connectedTable.TableReflection().Type());
+                        row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
+                        list.Add(row);
+                    }
+                    convertToTable(connectedTable.Property(), receivedElement, list);
+                }
+                else
+                {
+                    throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
+                }
+            }
+
+            
         } 
         catch (Exception e)
         {
@@ -115,14 +137,13 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                savedElement = MapToModel(reader);
+                savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
             }
         } 
         catch (Exception e)
         {
             throw new DatabaseSaveException($"Error saving element", e);
         }
-        
         
         if (savedElement == null)
             throw new DatabaseSaveException($"Error saving element");
@@ -152,31 +173,14 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
     {
         throw new NotImplementedException();
     }
-    
-    private E MapToModel(NpgsqlDataReader reader)
+
+    private void convertToTable(PropertyInfo property, E element, List<IDatabaseElement> list)
     {
         
-        E element = Create();
-        int i = 0;
-        foreach (IColumnReflection column in Reflection.MainTableReflection.Columns())
-        {
-            var value = MapToValue(reader, i, column.Type());
-            var property = column.Property();
-            property.SetValue(element, value);
-            i += 1;
-        }
-
-        return element;
-
-    }
-
-    private object MapToValue(NpgsqlDataReader reader, int index, Type type)
-    {
-        if (PostgresqlDefaultSettings.TypeReaders.TryGetValue(type, out var func))
-        {
-            return func(reader, index);
-        }
-        throw new NotSupportedException($"Type {type} is not supported.");
+        Type listType = typeof(List<IDatabaseElement>);
+        ConstructorInfo constructor = property.PropertyType.GetConstructor(new Type[] { listType }); // TODO move to cache
+        property.SetValue(element, constructor.Invoke(new object[] { list }));
+        
     }
     
 }

@@ -1,6 +1,6 @@
 namespace LightSpeedDbClient.Models;
 
-public class ITable
+public interface IDatabaseObjectTableElement
 {
     
 }

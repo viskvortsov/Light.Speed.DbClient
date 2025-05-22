@@ -8,7 +8,7 @@ namespace LightSpeedDbClient.Reflections;
 public class ConnectedTables : IConnectedTables
 {
     
-    Dictionary<string, ITableReflection> _tables;
+    Dictionary<string, ConnectedTable> _tables;
 
     public ConnectedTables(Type type)
     {
@@ -17,7 +17,7 @@ public class ConnectedTables : IConnectedTables
         if (model == null)
             throw new ClassIsNotAModelException();
 
-        _tables = new Dictionary<string, ITableReflection>();
+        _tables = new Dictionary<string, ConnectedTable>();
         
         PropertyInfo[] properties = type.GetProperties();
         foreach (var property in properties)
@@ -25,20 +25,19 @@ public class ConnectedTables : IConnectedTables
             TableAttribute? table = property.GetCustomAttribute<TableAttribute>();
             if (table != null)
             {
-                Type rowType = property.PropertyType.GetInterface("IObjectTable`1").GetGenericArguments()[0];
-                TableReflection tableReflection = new TableReflection(rowType);
-                if (_tables.ContainsKey(tableReflection.Name()))
+                ConnectedTable connectedTable = new ConnectedTable(property);
+                if (_tables.ContainsKey(connectedTable.Name()))
                 {
                     throw new ReflectionException();
                 }
-                _tables.Add(tableReflection.Name(), tableReflection);
+                _tables.Add(connectedTable.Name(), connectedTable);
             }
         }
         
         
     }
 
-    public IEnumerator<ITableReflection> GetEnumerator()
+    public IEnumerator<IConnectedTable> GetEnumerator()
     {
         return _tables.Values.GetEnumerator();
     }

@@ -20,6 +20,7 @@ public class Tests
         ITransaction transaction = await connection.BeginTransactionAsync();
 
         IManager<Currency> manager = new PostgresqlManager<Currency>(connection, transaction);
+        
         await manager.DeleteAsync();
         
         IEnumerable<Currency> currencies = await manager.GetListAsync(1, 100);

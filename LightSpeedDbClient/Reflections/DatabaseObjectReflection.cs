@@ -17,7 +17,7 @@ public class DatabaseObjectReflection
 
         foreach (var table in _connectedTables)
         {
-            foreach (var column in table.PartsOfOwnerKey())
+            foreach (var column in table.TableReflection().PartsOfOwnerKey())
             {
                 if (GetPrimaryKeyPart(column.Relation()) == null)
                 {

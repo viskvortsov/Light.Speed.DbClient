@@ -64,7 +64,7 @@ public class PostgresqlDeleteListQuery: IQuery
         sb.Append($";");
         sb.Append($" ");
         
-        List<ITableReflection> connectedTables = _reflection.ConnectedTables().ToList();
+        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
 
         foreach (var connectedTable in connectedTables)
         {
@@ -79,7 +79,7 @@ public class PostgresqlDeleteListQuery: IQuery
             sb.Append($"WHERE");
             sb.Append($" ");
             
-            List<IColumnReflection> ownerKeys = connectedTable.PartsOfOwnerKey().ToList();
+            List<IColumnReflection> ownerKeys = connectedTable.TableReflection().PartsOfOwnerKey().ToList();
         
             int index2 = 0;
             foreach (var keyPart in ownerKeys)

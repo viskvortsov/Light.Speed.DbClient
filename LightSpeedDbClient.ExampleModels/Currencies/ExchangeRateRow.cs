@@ -1,10 +1,10 @@
 using LightSpeedDbClient.Attributes;
-using LightSpeedDbClient.Models;
+using LightSpeedDbClient.Implementations;
 
 namespace ExampleModels.Currencies;
 
 [Model(table: "exchange_rates")]
-public class ExchangeRateRow : IObjectTableElement
+public class ExchangeRateRow : DatabaseObject
 {
     
     [PrimaryKey]

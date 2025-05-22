@@ -39,6 +39,6 @@ public class Currency : DatabaseObject
     public float rate5 { get; set; }
     
     [Table]
-    public ExchangeRateTable ExchangeRates { get; set; }
+    public DatabaseObjectTable<ExchangeRateRow> ExchangeRates { get; set; }
     
 }

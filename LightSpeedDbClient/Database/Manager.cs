@@ -24,6 +24,11 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
     {
         return (E) ClientSettings.GetConstructor(typeof(E)).Invoke(new object[]{});;
     }
+    
+    public object CreateRow(Type type)
+    {
+        return ClientSettings.GetConstructor(type).Invoke(new object[]{});;
+    }
 
     public abstract Task<IEnumerable<E>>
         GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);

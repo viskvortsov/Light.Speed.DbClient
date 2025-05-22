@@ -1,8 +1,6 @@
-using System.Collections;
 using System.Reflection;
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Exceptions;
-using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Reflections;
 
@@ -88,6 +86,11 @@ public class TableReflection : ITableReflection
     public string QueryName()
     { 
         return _queryName;
+    }
+
+    public Type Type()
+    {
+        return _type;
     }
 
     public IEnumerable<IColumnReflection> Columns()

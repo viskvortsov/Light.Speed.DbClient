@@ -67,7 +67,7 @@ public class PostgresqlSelectByKeyQuery: IQuery
         sb.Append(";");
         sb.Append(" ");
         
-        List<ITableReflection> connectedTables = _reflection.ConnectedTables().ToList();
+        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
         
         for (int k = 0; k < connectedTables.Count; k++)
         {
@@ -77,7 +77,7 @@ public class PostgresqlSelectByKeyQuery: IQuery
             sb.Append($"SELECT");
             sb.Append($" ");
             
-            var connectedTableColumns = connectedTable.Columns().ToList();
+            var connectedTableColumns = connectedTable.TableReflection().Columns().ToList();
             for (int i = 0; i < connectedTableColumns.Count; i++)
             {
                 var column = connectedTableColumns[i];
@@ -91,7 +91,7 @@ public class PostgresqlSelectByKeyQuery: IQuery
             sb.Append($"WHERE");
             sb.Append($" ");
             
-            List<IColumnReflection> ownerKeys = connectedTable.PartsOfOwnerKey().ToList();
+            List<IColumnReflection> ownerKeys = connectedTable.TableReflection().PartsOfOwnerKey().ToList();
         
             for (int i = 0; i < ownerKeys.Count; i++)
             {
