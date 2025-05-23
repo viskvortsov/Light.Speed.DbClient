@@ -7,7 +7,6 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
     
     // TODO add connected tables filter to GetListAsync, CountAsync, DeleteAsync
     // TODO add GetListObjectsAsync
-    // TODO add connected tables to SaveAsync
     // TODO add SaveManyAsync
     // TODO add difference with Reference and Object
     
@@ -21,6 +20,7 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
     Task<int> CountAsync(IEnumerable<IFilter> filters);
     Task<int> CountAsync();
     Task<E> SaveAsync(E element);
+    Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements);
     Task<int> DeleteAsync();
     Task<int> DeleteAsync(IEnumerable<IFilter> filters);
     Task<int> DeleteByKeyAsync(IKey key);

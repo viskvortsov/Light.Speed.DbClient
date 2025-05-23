@@ -137,7 +137,26 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
+                savedElement = Create();
+                savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(savedElement);
+            }
+            foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
+            {
+                if (await reader.NextResultAsync())
+                {
+                    List<IDatabaseElement> list = new ();
+                    while (await reader.ReadAsync())
+                    {
+                        IDatabaseElement row = (IDatabaseElement) CreateRow(connectedTable.TableReflection().Type());
+                        row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
+                        list.Add(row);
+                    }
+                    convertToTable(connectedTable.Property(), savedElement, list);
+                }
+                else
+                {
+                    throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
+                }
             }
         } 
         catch (Exception e)
@@ -151,7 +170,61 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         return savedElement;
         
     }
-    
+
+    public override async Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements)
+    {
+        
+        List<E> savedElements = new ();
+        
+        PostgresqlSaveQuery<E> saveQuery = new (Reflection, elements);
+
+        PostgresqlTransaction? transaction = null;
+        if (Transaction != null)
+        {
+            transaction = (PostgresqlTransaction)Transaction;
+        }
+
+        await using PostgresqlCommand cmd = new PostgresqlCommand(saveQuery, (PostgresqlConnection)Connection, transaction);
+
+        try
+        {
+            await using var reader = await cmd.ExecuteReaderAsync();
+            while (await reader.ReadAsync())
+            {
+                E element = Create();
+                E savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
+                savedElements.Add(savedElement);
+            }
+            foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
+            {
+                if (await reader.NextResultAsync())
+                {
+                    List<IDatabaseElement> list = new ();
+                    while (await reader.ReadAsync())
+                    {
+                        IDatabaseElement row = (IDatabaseElement) CreateRow(connectedTable.TableReflection().Type());
+                        row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
+                        list.Add(row);
+                        // TODO how to sort them to elements?
+                    }
+                    int i=0;
+                }
+                else
+                {
+                    throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
+                }
+            }
+        } 
+        catch (Exception e)
+        {
+            throw new DatabaseSaveException($"Error saving element", e);
+        }
+        
+        return savedElements;
+        
+    }
+
+
     public override async Task<int> DeleteAsync()
     {
         return await DeleteAsync(new List<IFilter>()); 

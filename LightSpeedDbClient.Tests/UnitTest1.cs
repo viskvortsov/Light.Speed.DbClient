@@ -66,6 +66,21 @@ public class Tests
         Assert.That(currency4.Name, Is.EqualTo(currency3.Name));
         Assert.That(currency4.Deleted, Is.EqualTo(currency3.Deleted));
         
+        Currency currency10 = manager.Create();
+        currency10.Id = Guid.NewGuid();
+        currency10.Name = "Euro";
+        currency10.Deleted = "dj";
+        currency10.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
+        currency10.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  1, currency.Id));
+        currency10.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  2, currency.Id));
+        currency10.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  3, currency.Id));
+        
+        currency10.Codes = new DatabaseObjectTable<CurrencyCodeRow>();
+        currency10.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "USD", currency.Id));
+        currency10.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "864", currency.Id));
+        
+        IEnumerable<Currency> elements = await manager.SaveManyAsync(new List<Currency>(){currency10, currency4});
+        
         List<IFilter> filters = new List<IFilter>()
         {
             new Filter<Currency>("name", ComparisonOperator.Equals, "Euro"),

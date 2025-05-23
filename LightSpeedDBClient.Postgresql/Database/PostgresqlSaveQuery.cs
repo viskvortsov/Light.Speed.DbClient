@@ -161,8 +161,10 @@ public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseElement
         sb.Append($"IN");
         sb.Append($" ");
         sb.Append($"(");
+        int index1 = 0;
         foreach (var element in _elements)
         {
+            int index2 = 0;
             sb.Append($"(");
             foreach (IColumnReflection keyPart in partsOfOwnerKey)
             {
@@ -170,10 +172,14 @@ public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseElement
                 var value = ownerColumn.Property().GetValue(element);
                 string parameterName = _parameters.Add(ownerColumn.Type(), value);
                 sb.Append($"{parameterName}");
-                if (index0 < partsOfOwnerKey.Count - 1)
+                if (index2 < partsOfOwnerKey.Count - 1)
                     sb.Append(", ");
+                index2++;
             }
             sb.Append($")");
+            if (index1 < _elements.Count - 1)
+                sb.Append(",");
+            index1++;
         }
         sb.Append($")");
         sb.Append($";");
@@ -220,6 +226,7 @@ public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseElement
         sb.Append($"VALUES");
         sb.Append($" ");
         
+        int index4 = 0;
         foreach (var element in _elements)
         {
             int index2 = 0;
@@ -241,6 +248,9 @@ public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseElement
                     sb.Append(",");
                 index2++;
             }
+            if (index4 < _elements.Count - 1)
+                sb.Append(",");
+            index4++;
         }
         sb.Append($" ");
         sb.Append($"RETURNING");
