@@ -12,7 +12,7 @@ public class Company : DatabaseObject
     public Guid Id { get; set; }
 
     [Column(name: "currency_id")]
-    [ForeignKey(tableName:"currencies", columnName: "id")]
+    [ForeignKey(model:typeof(Currency), columnName: "id")]
     [AddInfo(["name", "rate1"])]
     public Guid CurrencyId { get; set; }
     

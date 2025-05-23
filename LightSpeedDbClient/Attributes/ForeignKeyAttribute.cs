@@ -3,12 +3,12 @@ namespace LightSpeedDbClient.Attributes;
 [AttributeUsage(AttributeTargets.Property)]
 public class ForeignKeyAttribute : Attribute
 {
-    public readonly string TableName;
+    public readonly Type Model;
     public readonly string ColumnName;
     
-    public ForeignKeyAttribute(string tableName, string columnName)
+    public ForeignKeyAttribute(Type model, string columnName)
     {
-        TableName = tableName;
+        Model = model;
         ColumnName = columnName;
     }
 }

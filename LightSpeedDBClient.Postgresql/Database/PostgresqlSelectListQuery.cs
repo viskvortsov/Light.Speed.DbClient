@@ -38,19 +38,80 @@ public class PostgresqlSelectListQuery: IQuery
         _parameters.Clear();
 
         StringBuilder sb = new StringBuilder();
+        sb.Append(MainRowSelectQuery());
+        return sb.ToString();
+        
+    }
+
+    public IQueryParameters Parameters()
+    {
+        return _parameters;
+    }
+
+    private string MainRowSelectQuery()
+    {
+        
+        StringBuilder sb = new StringBuilder();
         sb.Append($"SELECT");
         sb.Append($" ");
         
         var columns = _reflection.MainTableReflection.Columns().ToList();
+        // main fields
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
-            sb.Append($"{column.QueryName()} as {column.QueryName()}");
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()} as {column.QueryName()}");
             if (i < columns.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
         }
+        
+        // additional fields
+        var columnsWithAdditionalInfo = _reflection.MainTableReflection.ColumnsWithAdditionalInfo();
+        Dictionary<IColumnReflection, IColumnReflection> allAdditionalFields = new ();
+        foreach (var column in columnsWithAdditionalInfo)
+        {
+            foreach (IColumnReflection additionalField in column.AdditionalFields())
+            {
+                allAdditionalFields.Add(additionalField, column);
+            }
+        }
+        
+        if (allAdditionalFields.Count > 0)
+            sb.Append(",");
+
+        int index0 = 0;
+        foreach (var keyValue in allAdditionalFields)
+        {
+            IColumnReflection additionalField = keyValue.Key;
+            IColumnReflection column = keyValue.Value;
+            ITableReflection foreignKeyTable = column.ForeignKeyTable();
+            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
+            if (index0 < columns.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+            index0++;
+        }
+        
+        // Main table
         sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
+        
+        // Additional tables
+        foreach (var column in columnsWithAdditionalInfo)
+        {
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}.{column.ForeignKeyColumn().QueryName()}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+        }
 
         if (_filters.Any())
         {
@@ -85,14 +146,9 @@ public class PostgresqlSelectListQuery: IQuery
             sb.Append(" ");
 
         }
-            
+        sb.Append(";");
         return sb.ToString();
         
-    }
-
-    public IQueryParameters Parameters()
-    {
-        return _parameters;
     }
     
 }

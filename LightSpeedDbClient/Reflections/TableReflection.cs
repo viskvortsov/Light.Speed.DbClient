@@ -160,4 +160,17 @@ public class TableReflection : ITableReflection
     {
         return _connectedTables.SingleOrDefault(x => x.Name() == name.ToLower());
     }
+
+    public List<IColumnReflection> ColumnsWithAdditionalInfo()
+    {
+        List<IColumnReflection> columns = new ();
+        foreach (var column in _columns)
+        {
+            if (column.HasForeignKeyTable() && column.HasAdditionalFields())
+            {
+                columns.Add(column);
+            }
+        }
+        return columns;
+    }
 }

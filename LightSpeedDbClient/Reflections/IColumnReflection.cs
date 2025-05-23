@@ -13,4 +13,9 @@ public interface IColumnReflection
     PropertyInfo Property();
     bool IsPartOfPrimaryKey();
     bool IsPartOfOwnerKey();
+    bool HasAdditionalFields();
+    bool HasForeignKeyTable();
+    IEnumerable<IColumnReflection> AdditionalFields();
+    ITableReflection ForeignKeyTable();
+    IColumnReflection ForeignKeyColumn();
 }

@@ -19,8 +19,10 @@ public class Tests
         IConnection connection = await db.OpenConnectionAsync();
         ITransaction transaction = await connection.BeginTransactionAsync();
 
+        IManager<Company> coManager = new PostgresqlManager<Company>(connection, transaction);
         IManager<Currency> manager = new PostgresqlManager<Currency>(connection, transaction);
         
+        await coManager.DeleteAsync();
         await manager.DeleteAsync();
         
         IEnumerable<Currency> currencies = await manager.GetListAsync(1, 100);
@@ -52,11 +54,12 @@ public class Tests
         Assert.That(currency2.ExchangeRates.Count, Is.EqualTo(3));
         Assert.That(currency2.Codes.Count, Is.EqualTo(2));
         
-        IManager<Company> coManager = new PostgresqlManager<Company>(connection, transaction);
+        
         Company company = coManager.CreateObject();
         company.Id = Guid.NewGuid();
         company.CurrencyId = currency2.Id;
         await coManager.SaveAsync(company);
+        IEnumerable<Company> companies = await coManager.GetListAsync(1, 100);
         
         Currency currency3 = await manager.GetByKeyAsync(new GuidKey<Currency>(currency2.Id));
         

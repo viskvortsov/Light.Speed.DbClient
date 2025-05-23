@@ -11,5 +11,6 @@ public interface ITableReflection
     IEnumerable<IColumnReflection> PartsOfOwnerKey();
     IColumnReflection GetColumnReflection(string name);
     IColumnReflection GetTableReflection(string name);
-        
+    List<IColumnReflection> ColumnsWithAdditionalInfo();
+
 }
