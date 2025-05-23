@@ -1,5 +1,6 @@
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Implementations;
+using LightSpeedDbClient.Models;
 
 namespace ExampleModels.Currencies;
 
@@ -25,7 +26,7 @@ public class ExchangeRateRow : DatabaseObjectTableElement
         OwnerId = ownerId;
     }
 
-    public ExchangeRateRow()
+    public ExchangeRateRow(ModelType modelType) : base(modelType)
     {
     }
     

@@ -52,6 +52,12 @@ public class Tests
         Assert.That(currency2.ExchangeRates.Count, Is.EqualTo(3));
         Assert.That(currency2.Codes.Count, Is.EqualTo(2));
         
+        IManager<Company> coManager = new PostgresqlManager<Company>(connection, transaction);
+        Company company = coManager.CreateObject();
+        company.Id = Guid.NewGuid();
+        company.CurrencyId = currency2.Id;
+        await coManager.SaveAsync(company);
+        
         Currency currency3 = await manager.GetByKeyAsync(new GuidKey<Currency>(currency2.Id));
         
         Assert.NotNull(currency3);

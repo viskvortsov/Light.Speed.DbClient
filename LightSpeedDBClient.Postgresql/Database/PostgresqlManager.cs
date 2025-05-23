@@ -218,7 +218,9 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
                     List<IDatabaseObjectTableElement> list = new ();
                     while (await reader.ReadAsync())
                     {
-                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
+                        ITableReflection tableReflection = connectedTable.TableReflection();
+                        Type tableReflectionType = tableReflection.Type();
+                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(tableReflectionType);
                         row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
                         list.Add(row);
                     }

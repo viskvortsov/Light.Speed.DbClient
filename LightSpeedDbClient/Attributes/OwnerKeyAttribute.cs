@@ -4,7 +4,7 @@ namespace LightSpeedDbClient.Attributes;
 public class OwnerKeyAttribute : Attribute
 {
     
-    public string Relation;
+    public readonly string Relation;
 
     public OwnerKeyAttribute(string relation)
     {

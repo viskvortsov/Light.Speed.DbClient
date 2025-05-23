@@ -17,7 +17,11 @@ public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseOb
         }
     }
     
-    public DatabaseObjectTable()
+    public DatabaseObjectTable() : this(ModelType.Row)
+    {
+    }
+    
+    public DatabaseObjectTable(ModelType modelType)
     {
     }
 

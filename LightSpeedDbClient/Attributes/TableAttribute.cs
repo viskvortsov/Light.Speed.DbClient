@@ -3,7 +3,7 @@ namespace LightSpeedDbClient.Attributes;
 [AttributeUsage(AttributeTargets.Property)]
 public class TableAttribute : Attribute
 {
-    public string? Name;
+    public readonly string? Name;
 
     public TableAttribute()
     {

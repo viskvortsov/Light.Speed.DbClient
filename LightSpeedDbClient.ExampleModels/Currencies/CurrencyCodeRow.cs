@@ -1,5 +1,6 @@
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Implementations;
+using LightSpeedDbClient.Models;
 
 namespace ExampleModels.Currencies;
 
@@ -25,7 +26,7 @@ public class CurrencyCodeRow : DatabaseObjectTableElement
         OwnerId = ownerId;
     }
 
-    public CurrencyCodeRow()
+    public CurrencyCodeRow(ModelType modelType) : base(modelType)
     {
     }
     

@@ -13,6 +13,10 @@ public class DatabaseObjectTableElement : IDatabaseObjectTableElement
     {
         _reflection = ClientSettings.GetConnectedTableReflection(GetType());
     }
+    
+    public DatabaseObjectTableElement(ModelType modelType) : this()
+    {
+    }
 
     public IKey Key()
     {

@@ -25,7 +25,7 @@ public class ClientSettings
             }
 
             ConstructorInfo info;
-            _constructors.Add(type, info = type.GetConstructor(new Type[] {}));
+            _constructors.Add(type, info = type.GetConstructor(new Type[] { typeof(ModelType) }));
 
             return info;
 
