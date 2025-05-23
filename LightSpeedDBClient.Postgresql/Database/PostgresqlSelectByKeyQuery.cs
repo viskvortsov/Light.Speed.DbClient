@@ -21,13 +21,31 @@ public class PostgresqlSelectByKeyQuery: IQuery
 
     public string GetQueryText()
     {
-        
         _parameters.Clear();
+        StringBuilder sb = new StringBuilder();
+        sb.Append(MainRowSelectQuery());
+        sb.Append(" ");
+        
+        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
+        foreach (var connectedTable in connectedTables)
+        {
+            sb.Append(ConnectedTableSelectQuery(connectedTable));
+            sb.Append(" ");
+        }
+        
+        return sb.ToString();
+    }
 
+    public IQueryParameters Parameters()
+    {
+        return _parameters;
+    }
+
+    private string MainRowSelectQuery()
+    {
         StringBuilder sb = new StringBuilder();
         sb.Append($"SELECT");
         sb.Append($" ");
-        
         var columns = _reflection.MainTableReflection.Columns().ToList();
         for (int i = 0; i < columns.Count; i++)
         {
@@ -41,86 +59,58 @@ public class PostgresqlSelectByKeyQuery: IQuery
         sb.Append($" ");
         sb.Append($"WHERE");
         sb.Append($" ");
-
         List<IKeyElement> keyElements = _key.KeyElements().ToList();
-
         int x = 0;
         for (int i = 0; i < keyElements.Count; i++)
         {
-            
             var keyPart = keyElements[i];
-            
-            string parameterName = $"@{x}";
-            x++;
             var value = keyPart.Value();
             var type = value.GetType();
-            
-            _parameters.Add(new QueryParameter(parameterName, type, value));
-            
+            string parameterName = _parameters.Add(type, value);
             sb.Append($"{_reflection.MainTableReflection.QueryName()}.{keyPart.Column().QueryName()} = {parameterName}");
             if (i < keyElements.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
-            
         }
-        
         sb.Append(";");
-        sb.Append(" ");
-        
-        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
-        
-        for (int k = 0; k < connectedTables.Count; k++)
-        {
-            
-            var connectedTable = connectedTables[k];
-            
-            sb.Append($"SELECT");
-            sb.Append($" ");
-            
-            var connectedTableColumns = connectedTable.TableReflection().Columns().ToList();
-            for (int i = 0; i < connectedTableColumns.Count; i++)
-            {
-                var column = connectedTableColumns[i];
-                sb.Append($"{connectedTable.QueryName()}.{column.QueryName()} as {column.QueryName()}");
-                if (i < connectedTableColumns.Count - 1)
-                    sb.Append(", ");
-                sb.Append(" ");
-            }
-            sb.Append($"FROM {connectedTable.QueryName()} as {connectedTable.QueryName()}");
-            sb.Append($" ");
-            sb.Append($"WHERE");
-            sb.Append($" ");
-            
-            List<IColumnReflection> ownerKeys = connectedTable.TableReflection().PartsOfOwnerKey().ToList();
-        
-            for (int i = 0; i < ownerKeys.Count; i++)
-            {
-            
-                var keyPart = ownerKeys[i];
-            
-                string parameterName = $"@{x}";
-                x++;
-                var value = _key.GetValue(keyPart.Relation());
-                var type = value.GetType();
-            
-                _parameters.Add(new QueryParameter(parameterName, type, value));
-            
-                sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {parameterName}");
-                if (i < keyElements.Count - 1)
-                    sb.Append(", ");
-                sb.Append(" ");
-            
-            }
-            
-        }
-        
         return sb.ToString();
-        
     }
-
-    public IQueryParameters Parameters()
+    
+    private string ConnectedTableSelectQuery(IConnectedTable connectedTable)
     {
-        return _parameters;
+        
+        StringBuilder sb = new StringBuilder();
+        sb.Append($"SELECT");
+        sb.Append($" ");
+            
+        var connectedTableColumns = connectedTable.TableReflection().Columns().ToList();
+        for (int i = 0; i < connectedTableColumns.Count; i++)
+        {
+            var column = connectedTableColumns[i];
+            sb.Append($"{connectedTable.QueryName()}.{column.QueryName()} as {column.QueryName()}");
+            if (i < connectedTableColumns.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+        }
+        sb.Append($"FROM {connectedTable.QueryName()} as {connectedTable.QueryName()}");
+        sb.Append($" ");
+        sb.Append($"WHERE");
+        sb.Append($" ");
+            
+        List<IColumnReflection> ownerKeys = connectedTable.TableReflection().PartsOfOwnerKey().ToList();
+        for (int i = 0; i < ownerKeys.Count; i++)
+        {
+            var keyPart = ownerKeys[i];
+            var value = _key.GetValue(keyPart.Relation());
+            var type = value.GetType();
+            string parameterName =_parameters.Add(type, value);
+            sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {parameterName}");
+            if (i < ownerKeys.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+        }
+        sb.Append(";");
+        return sb.ToString();
     }
     
 }

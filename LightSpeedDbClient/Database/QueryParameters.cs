@@ -12,14 +12,22 @@ public class QueryParameters : IQueryParameters
         return _parameters.GetEnumerator();
     }
 
-    public void Add(IQueryParameter parameter)
+    public string Add(Type type, object value)
     {
-        _parameters.Add(parameter);
+        int index = _parameters.Count;
+        string parameterName = $"@{index}";
+        _parameters.Add(new QueryParameter(parameterName, type, value));
+        return parameterName;
     }
 
     public void Clear()
     {
         _parameters.Clear();
+    }
+
+    public int Count()
+    {
+        return _parameters.Count;
     }
 
     IEnumerator IEnumerable.GetEnumerator()

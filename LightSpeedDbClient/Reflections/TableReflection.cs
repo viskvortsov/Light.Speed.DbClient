@@ -11,14 +11,16 @@ public class TableReflection : ITableReflection
     private readonly string _queryName;
     private readonly Type _type;
     
-    private readonly Dictionary<string, IColumnReflection> _columns;
+    private readonly List<IColumnReflection> _columns;
+    private readonly List<IColumnReflection> _connectedTables;
     private readonly Dictionary<string, IColumnReflection> _partsOfPrimaryKey;
     private readonly Dictionary<string, IColumnReflection> _partsOfOwnerKey;
     
     public TableReflection(Type type)
     {
         
-        _columns = new Dictionary<string, IColumnReflection>();
+        _columns = new List<IColumnReflection>();
+        _connectedTables = new List<IColumnReflection>();
         _partsOfPrimaryKey = new Dictionary<string, IColumnReflection>();
         _partsOfOwnerKey = new Dictionary<string, IColumnReflection>();
         _type = type;
@@ -31,6 +33,7 @@ public class TableReflection : ITableReflection
         _queryName = model.Table;
 
         FillColumns();
+        FillTables();
         FillPrimaryKeys();
         FillOwnerKeys();
 
@@ -46,11 +49,31 @@ public class TableReflection : ITableReflection
             if (column != null)
             {
                 ColumnReflection columnReflection = new(property);
-                if (_columns.ContainsKey(columnReflection.Name()))
+                if (_columns.Contains(columnReflection))
                 {
                     throw new ReflectionException();
                 }
-                _columns.Add(columnReflection.Name(), columnReflection);
+                _columns.Add(columnReflection);
+            }
+        }
+        
+    }
+    
+    private void FillTables()
+    {
+
+        PropertyInfo[] properties = _type.GetProperties();
+        foreach (var property in properties)
+        {
+            TableAttribute? table = property.GetCustomAttribute<TableAttribute>();
+            if (table != null)
+            {
+                ColumnReflection columnReflection = new(property);
+                if (_connectedTables.Contains(columnReflection))
+                {
+                    throw new ReflectionException();
+                }
+                _connectedTables.Add(columnReflection);
             }
         }
         
@@ -59,7 +82,7 @@ public class TableReflection : ITableReflection
     private void FillPrimaryKeys()
     {
         
-        foreach (var column in _columns.Values)
+        foreach (var column in _columns)
         { 
             if (column.IsPartOfPrimaryKey())
                 _partsOfPrimaryKey.Add(column.Name(), column);
@@ -70,7 +93,7 @@ public class TableReflection : ITableReflection
     private void FillOwnerKeys()
     {
         
-        foreach (var column in _columns.Values)
+        foreach (var column in _columns)
         { 
             if (column.IsPartOfOwnerKey())
                 _partsOfOwnerKey.Add(column.Name(), column);
@@ -95,7 +118,7 @@ public class TableReflection : ITableReflection
 
     public IEnumerable<IColumnReflection> Columns()
     {
-        return _columns.Values;
+        return _columns;
     }
 
     public IEnumerable<IColumnReflection> PartsOfPrimaryKey()
@@ -103,7 +126,7 @@ public class TableReflection : ITableReflection
         
         List<IColumnReflection> partsOfPrimaryKey = new();
 
-        foreach (var column in _columns.Values)
+        foreach (var column in _columns)
         {
             if (column.IsPartOfPrimaryKey())
                 partsOfPrimaryKey.Add(column);
@@ -118,7 +141,7 @@ public class TableReflection : ITableReflection
         
         List<IColumnReflection> partsOfOwnerKey = new();
 
-        foreach (var column in _columns.Values)
+        foreach (var column in _columns)
         {
             if (column.IsPartOfOwnerKey())
                 partsOfOwnerKey.Add(column);
@@ -127,5 +150,14 @@ public class TableReflection : ITableReflection
         return partsOfOwnerKey;
 
     }
-    
+
+    public IColumnReflection GetColumnReflection(string name)
+    {
+        return _columns.SingleOrDefault(x => x.Name() == name.ToLower());
+    }
+
+    public IColumnReflection GetTableReflection(string name)
+    {
+        return _connectedTables.SingleOrDefault(x => x.Name() == name.ToLower());
+    }
 }

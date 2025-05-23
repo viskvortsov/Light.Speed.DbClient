@@ -9,5 +9,7 @@ public interface ITableReflection
     IEnumerable<IColumnReflection> Columns();
     IEnumerable<IColumnReflection> PartsOfPrimaryKey();
     IEnumerable<IColumnReflection> PartsOfOwnerKey();
+    IColumnReflection GetColumnReflection(string name);
+    IColumnReflection GetTableReflection(string name);
         
 }

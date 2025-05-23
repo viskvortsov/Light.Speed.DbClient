@@ -1,3 +1,5 @@
+using System.Collections;
+using System.Reflection;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
@@ -30,6 +32,19 @@ public abstract class DatabaseObject : IDatabaseObject
     public IKey Key()
     {
         return _key;
+    }
+
+    public IDatabaseObjectTable Table(string name)
+    {
+        // TODO exception
+        IColumnReflection columnReflection = _reflection.MainTableReflection.GetTableReflection(name);
+        IDatabaseObjectTable table = (IDatabaseObjectTable) columnReflection.Property().GetValue(this);
+        if (table == null)
+        {
+            ConstructorInfo constructor = ClientSettings.GetConstructor(columnReflection.Type());
+            table = (IDatabaseObjectTable) constructor.Invoke(new object[]{});
+        }
+        return table;
     }
 
 }

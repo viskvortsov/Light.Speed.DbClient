@@ -41,13 +41,9 @@ public class PostgresqlDeleteListQuery: IQuery
             int index1 = 0;
             foreach (IFilter filter in filters)
             {
-                string parameterName = $"@{i}";
-                i++;
                 var value = filter.Value();
                 var type = value.GetType();
-            
-                _parameters.Add(new QueryParameter(parameterName, type, value));
-            
+                string parameterName = _parameters.Add(type, value);
                 sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} = {parameterName}");
                 if (index1 < filters.Count - 1)
                     sb.Append(", ");
@@ -101,13 +97,9 @@ public class PostgresqlDeleteListQuery: IQuery
                 int index4 = 0;
                 foreach (IFilter filter in _filters)
                 {
-                    
-                    string parameterName = $"@{i}";
                     var value = filter.Value();
                     var type = value.GetType();
-            
-                    _parameters.Add(new QueryParameter(parameterName, type, value));
-            
+                    string parameterName =_parameters.Add(type, value);
                     sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                     if (index4 < filters.Count - 1)
                         sb.Append(", ");

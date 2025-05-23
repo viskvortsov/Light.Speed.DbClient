@@ -23,7 +23,7 @@ public class ConnectedTable : IConnectedTable
         _type = property.PropertyType;
         _property = property;
         
-        Type rowType = property.PropertyType.GetInterface("IDatabaseObjectTable`1").GetGenericArguments()[0];
+        Type rowType = property.PropertyType.GetGenericArguments()[0];
         _tableReflection = new TableReflection(rowType);
         _queryName = _tableReflection.QueryName();
 

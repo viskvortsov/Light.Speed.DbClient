@@ -34,12 +34,23 @@ public class Tests
         currency.Id = Guid.NewGuid();
         currency.Name = "Euro";
         currency.Deleted = "dj";
+        currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
+        currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  1, currency.Id));
+        currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  2, currency.Id));
+        currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  3, currency.Id));
+        
+        currency.Codes = new DatabaseObjectTable<CurrencyCodeRow>();
+        currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "USD", currency.Id));
+        currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "864", currency.Id));
+        
         Currency currency2 = await manager.SaveAsync(currency);
         
         Assert.NotNull(currency2);
         Assert.That(currency2.Id, Is.EqualTo(currency.Id));
         Assert.That(currency2.Name, Is.EqualTo(currency.Name));
         Assert.That(currency2.Deleted, Is.EqualTo(currency.Deleted));
+        Assert.That(currency2.ExchangeRates.Count, Is.EqualTo(3));
+        Assert.That(currency2.Codes.Count, Is.EqualTo(2));
         
         Currency currency3 = await manager.GetByKeyAsync(new GuidKey<Currency>(currency2.Id));
         

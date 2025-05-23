@@ -41,4 +41,7 @@ public class Currency : DatabaseObject
     [Table]
     public DatabaseObjectTable<ExchangeRateRow> ExchangeRates { get; set; }
     
+    [Table]
+    public DatabaseObjectTable<CurrencyCodeRow> Codes { get; set; }
+    
 }

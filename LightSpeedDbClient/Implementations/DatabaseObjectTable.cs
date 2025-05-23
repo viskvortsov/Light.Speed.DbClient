@@ -3,7 +3,7 @@ using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Implementations;
 
-public class DatabaseObjectTable<E> : IDatabaseObjectTable<E> where E : IDatabaseObject
+public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseObject
 {
     
     private readonly List<E> _elements = new List<E>();
@@ -14,6 +14,10 @@ public class DatabaseObjectTable<E> : IDatabaseObjectTable<E> where E : IDatabas
         {
             _elements.Add((E) element);
         }
+    }
+    
+    public DatabaseObjectTable()
+    {
     }
 
     public IEnumerator<E> GetEnumerator()
@@ -31,10 +35,42 @@ public class DatabaseObjectTable<E> : IDatabaseObjectTable<E> where E : IDatabas
         _elements.Add(item);
     }
 
+    public int Add(object? value)
+    {
+        throw new NotImplementedException();
+    }
+
     public void Clear()
     {
         _elements.Clear();
     }
+
+    public bool Contains(object? value)
+    {
+        throw new NotImplementedException();
+    }
+
+    public int IndexOf(object? value)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Insert(int index, object? value)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void Remove(object? value)
+    {
+        throw new NotImplementedException();
+    }
+
+    public void RemoveAt(int index)
+    {
+        throw new NotImplementedException();
+    }
+
+    public bool IsFixedSize { get; }
 
     public bool Contains(E item)
     {
@@ -57,6 +93,13 @@ public class DatabaseObjectTable<E> : IDatabaseObjectTable<E> where E : IDatabas
     }
 
     public int Count => _elements.Count;
+    public bool IsSynchronized { get; }
+    public object SyncRoot { get; }
     public bool IsReadOnly => false;
 
+    public object? this[int index]
+    {
+        get => throw new NotImplementedException();
+        set => throw new NotImplementedException();
+    }
 }

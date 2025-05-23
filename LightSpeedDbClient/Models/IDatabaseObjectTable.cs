@@ -1,5 +1,7 @@
+using System.Collections;
+
 namespace LightSpeedDbClient.Models;
 
-public interface IDatabaseObjectTable<E> : ICollection<E> where E : IDatabaseObject
+public interface IDatabaseObjectTable: IList
 {
 }

@@ -60,15 +60,10 @@ public class PostgresqlSelectListQuery: IQuery
             List<IFilter> filters = _filters.ToList();
             for (int i = 0; i < filters.Count; i++)
             {
-            
                 var filter = filters[i];
-            
-                string parameterName = $"@{i}";
                 var value = filter.Value();
                 var type = value.GetType();
-            
-                _parameters.Add(new QueryParameter(parameterName, type, value));
-            
+                string parameterName = _parameters.Add(type, value);
                 sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (i < filters.Count - 1)
                 {
@@ -76,9 +71,7 @@ public class PostgresqlSelectListQuery: IQuery
                     sb.Append("AND");
                     sb.Append(" ");
                 }
-
                 sb.Append(" ");
-            
             }
         }
         
