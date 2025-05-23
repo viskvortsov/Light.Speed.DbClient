@@ -16,7 +16,23 @@ public class PostgresqlMapper : IMapper
         _reader = reader;
     }
 
-    public IDatabaseElement MapToModel(IDatabaseElement element)
+    public IDatabaseObject MapToModel(IDatabaseObject element)
+    {
+        
+        int i = 0;
+        foreach (IColumnReflection column in _tableReflection.Columns())
+        {
+            var value = MapToValue(_reader, i, column.Type());
+            var property = column.Property();
+            property.SetValue(element, value);
+            i += 1;
+        }
+
+        return element;
+
+    }
+    
+    public IDatabaseObjectTableElement MapToModel(IDatabaseObjectTableElement element)
     {
         
         int i = 0;

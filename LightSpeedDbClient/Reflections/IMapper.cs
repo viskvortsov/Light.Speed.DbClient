@@ -5,5 +5,6 @@ namespace LightSpeedDbClient.Reflections;
 
 public interface IMapper
 {
-    public IDatabaseElement MapToModel(IDatabaseElement element);
+    public IDatabaseObject MapToModel(IDatabaseObject element);
+    public IDatabaseObjectTableElement MapToModel(IDatabaseObjectTableElement element);
 }

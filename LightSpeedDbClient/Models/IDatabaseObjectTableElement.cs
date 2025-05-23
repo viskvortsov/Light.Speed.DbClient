@@ -1,6 +1,6 @@
 namespace LightSpeedDbClient.Models;
 
-public interface IDatabaseObjectTableElement
+public interface IDatabaseObjectTableElement: IDatabaseElement
 {
     IKey Key();
     IKey OwnerKey();

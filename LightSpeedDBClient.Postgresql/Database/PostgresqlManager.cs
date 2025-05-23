@@ -7,7 +7,7 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
+public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
 {
     
     public PostgresqlManager(IConnection connection) : base(connection){}
@@ -87,10 +87,10 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
             {
                 if (await reader.NextResultAsync())
                 {
-                    List<IDatabaseElement> list = new ();
+                    List<IDatabaseObjectTableElement> list = new ();
                     while (await reader.ReadAsync())
                     {
-                        IDatabaseElement row = (IDatabaseElement) CreateRow(connectedTable.TableReflection().Type());
+                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
                         row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
                         list.Add(row);
                     }
@@ -144,10 +144,10 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
             {
                 if (await reader.NextResultAsync())
                 {
-                    List<IDatabaseElement> list = new ();
+                    List<IDatabaseObjectTableElement> list = new ();
                     while (await reader.ReadAsync())
                     {
-                        IDatabaseElement row = (IDatabaseElement) CreateRow(connectedTable.TableReflection().Type());
+                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
                         row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
                         list.Add(row);
                     }
@@ -199,10 +199,10 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
             {
                 if (await reader.NextResultAsync())
                 {
-                    List<IDatabaseElement> list = new ();
+                    List<IDatabaseObjectTableElement> list = new ();
                     while (await reader.ReadAsync())
                     {
-                        IDatabaseElement row = (IDatabaseElement) CreateRow(connectedTable.TableReflection().Type());
+                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
                         row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
                         list.Add(row);
                         // TODO how to sort them to elements?
@@ -247,10 +247,10 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseElement
         throw new NotImplementedException();
     }
 
-    private void convertToTable(PropertyInfo property, E element, List<IDatabaseElement> list)
+    private void convertToTable(PropertyInfo property, E element, List<IDatabaseObjectTableElement> list)
     {
         
-        Type listType = typeof(List<IDatabaseElement>);
+        Type listType = typeof(List<IDatabaseObjectTableElement>);
         ConstructorInfo constructor = property.PropertyType.GetConstructor(new Type[] { listType }); // TODO move to cache
         property.SetValue(element, constructor.Invoke(new object[] { list }));
         

@@ -5,7 +5,7 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseElement
+public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseObject
 {
     
     private readonly DatabaseObjectReflection _reflection;
