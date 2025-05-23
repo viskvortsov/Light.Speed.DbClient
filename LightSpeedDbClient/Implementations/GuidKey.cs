@@ -19,8 +19,8 @@ public class GuidKey<E> : Key where E : IDatabaseElement
             );
         IColumnReflection column = reflection.MainTableReflection.PartsOfPrimaryKey().First();
         _id = id;
-        _keyElements = new List<KeyElement>();
-        _keyElements.Add(new KeyElement(column, id));
+        _keyElements = new SortedList<string, KeyElement>();
+        _keyElements.Add(column.Name(), new KeyElement(column, id));
     }
     
 }

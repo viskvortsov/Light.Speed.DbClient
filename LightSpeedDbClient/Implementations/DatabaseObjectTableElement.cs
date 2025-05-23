@@ -1,9 +1,19 @@
+using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Models;
+using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDbClient.Implementations;
 
 public class DatabaseObjectTableElement : IDatabaseObjectTableElement
 {
+    
+    private readonly ITableReflection _reflection;
+    
+    public DatabaseObjectTableElement()
+    {
+        _reflection = ClientSettings.GetConnectedTableReflection(GetType());
+    }
+
     public IKey Key()
     {
         throw new NotImplementedException();
@@ -11,6 +21,12 @@ public class DatabaseObjectTableElement : IDatabaseObjectTableElement
 
     public IKey OwnerKey()
     {
-        throw new NotImplementedException();
+        IEnumerable<IColumnReflection> partsOfKey = _reflection.PartsOfOwnerKey();
+        List<KeyElement> keyElements = new List<KeyElement>();
+        foreach (IColumnReflection keyElement in partsOfKey)
+        {
+            keyElements.Add(new KeyElement(keyElement, keyElement.Property().GetValue(this)));
+        }
+        return new Key(keyElements);
     }
 }

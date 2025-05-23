@@ -2,6 +2,7 @@
 using System.Reflection;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Exceptions;
+using LightSpeedDbClient.Implementations;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
@@ -174,7 +175,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
     public override async Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements)
     {
         
-        List<E> savedElements = new ();
+        Dictionary<IKey, E> savedElements = new ();
         
         PostgresqlSaveQuery<E> saveQuery = new (Reflection, elements);
 
@@ -193,7 +194,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
             {
                 E element = Create();
                 E savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
-                savedElements.Add(savedElement);
+                savedElements.Add(savedElement.Key(), savedElement);
             }
             foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
             {
@@ -206,6 +207,26 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
                         row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
                         list.Add(row);
                         // TODO how to sort them to elements?
+                    }
+                    
+                    foreach (var row in list)
+                    {
+                        
+                        IKey ownerKey = row.OwnerKey();
+                        List<KeyElement> keyParts = new List<KeyElement>();
+                        foreach (var ownerKeyPart in ownerKey.KeyElements())
+                        {
+                            keyParts.Add(new KeyElement(Reflection.GetColumnReflection(ownerKeyPart.Column().Relation()), ownerKeyPart.Value()));
+                        }
+                        IKey primaryKey = new Key(keyParts);
+                        
+                        savedElements.TryGetValue(primaryKey, out E? savedElement);
+                        if (savedElement == null)
+                        {
+                            throw new DatabaseException($"Error saving element, No element found for owner key {ownerKey}");
+                        }
+                        savedElement.Table(connectedTable.Name()).Add(row);
+                        
                     }
                     int i=0;
                 }
@@ -220,7 +241,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
             throw new DatabaseSaveException($"Error saving element", e);
         }
         
-        return savedElements;
+        return savedElements.Values;
         
     }
 

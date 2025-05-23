@@ -1,4 +1,5 @@
 using System.Collections;
+using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Implementations;
@@ -34,10 +35,18 @@ public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseOb
     {
         _elements.Add(item);
     }
-
+    
     public int Add(object? value)
     {
-        throw new NotImplementedException();
+        if (value is E row)
+        {
+            Add(row);
+        }
+        else
+        {
+            throw new ReflectionException();
+        }
+        return _elements.Count;
     }
 
     public void Clear()
