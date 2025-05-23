@@ -101,12 +101,16 @@ public class PostgresqlSelectByKeyQuery: IQuery
         for (int i = 0; i < ownerKeys.Count; i++)
         {
             var keyPart = ownerKeys[i];
-            var value = _key.GetValue(keyPart.Relation());
+            IKeyElement partOfKey = _key.KeyElements().First(element => element.Column().Name() == keyPart.Relation());
+            var value = partOfKey.Value();
             var type = value.GetType();
             string parameterName =_parameters.Add(type, value);
             sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {parameterName}");
             if (i < ownerKeys.Count - 1)
-                sb.Append(", ");
+            {
+                sb.Append(" ");
+                sb.Append("AND");
+            }
             sb.Append(" ");
         }
         sb.Append(";");

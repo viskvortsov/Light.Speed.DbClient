@@ -3,12 +3,12 @@ using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Implementations;
 
-public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseObject
+public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseObjectTableElement
 {
     
     private readonly List<E> _elements = new List<E>();
 
-    public DatabaseObjectTable(List<IDatabaseElement> elements)
+    public DatabaseObjectTable(List<IDatabaseObjectTableElement> elements)
     {
         foreach (var element in elements)
         {

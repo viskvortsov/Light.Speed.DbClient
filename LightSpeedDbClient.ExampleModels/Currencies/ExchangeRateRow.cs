@@ -4,7 +4,7 @@ using LightSpeedDbClient.Implementations;
 namespace ExampleModels.Currencies;
 
 [Model(table: "exchange_rates")]
-public class ExchangeRateRow : DatabaseObject
+public class ExchangeRateRow : DatabaseObjectTableElement
 {
     
     [PrimaryKey]

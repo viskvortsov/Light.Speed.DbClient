@@ -4,7 +4,7 @@ using LightSpeedDbClient.Implementations;
 namespace ExampleModels.Currencies;
 
 [Model(table: "currency_codes")]
-public class CurrencyCodeRow : DatabaseObject
+public class CurrencyCodeRow : DatabaseObjectTableElement
 {
     
     [PrimaryKey]

@@ -1,4 +1,3 @@
-using System.Collections;
 using System.Reflection;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Models;
@@ -9,29 +8,21 @@ namespace LightSpeedDbClient.Implementations;
 public abstract class DatabaseObject : IDatabaseObject
 {
     private readonly DatabaseObjectReflection _reflection;
-    private readonly IKey _key;
 
-    protected DatabaseObject(IKey key)
+    protected DatabaseObject()
     {
-        
-        _key = key;
         _reflection = ClientSettings.GetReflection(GetType());
-
+    }
+    
+    public IKey Key()
+    {
         IEnumerable<IColumnReflection> partsOfPrimaryKey = _reflection.MainTableReflection.PartsOfPrimaryKey();
-
-        List<IKeyElement> keyElements = new List<IKeyElement>();
+        List<KeyElement> keyElements = new List<KeyElement>();
         foreach (IColumnReflection primaryKeyElement in partsOfPrimaryKey)
         {
             keyElements.Add(new KeyElement(primaryKeyElement, primaryKeyElement.Property().GetValue(this)));
         }
-        
-    }
-
-    protected DatabaseObject() : this(new EmptyKey()) {}
-
-    public IKey Key()
-    {
-        return _key;
+        return new Key(keyElements);
     }
 
     public IDatabaseObjectTable Table(string name)
