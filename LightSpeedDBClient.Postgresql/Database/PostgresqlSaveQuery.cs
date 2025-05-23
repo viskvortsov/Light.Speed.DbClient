@@ -114,10 +114,6 @@ public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseObject
             sb.Append(" ");
         }
         
-        sb.Append($"RETURNING");
-        sb.Append(" ");
-        sb.Append($"{columnNamesBuilder.ToString()}");
-        
         sb.Append(";");
         sb.Append("\n");
         

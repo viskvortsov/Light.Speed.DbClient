@@ -27,7 +27,23 @@ public class PostgresqlMapper : IMapper
             property.SetValue(element, value);
             i += 1;
         }
-
+        Dictionary<IColumnReflection, IColumnReflection> allAdditionalFields = new ();
+        foreach (IColumnReflection column in _tableReflection.ColumnsWithAdditionalInfo())
+        {
+            foreach (var additionalField in column.AdditionalFields())
+            {
+                allAdditionalFields.Add(additionalField, column);
+            }
+        }
+        
+        foreach (var column in allAdditionalFields)
+        {
+            var field = column.Key;
+            var value = MapToValue(_reader, i, field.Type());
+            i += 1;
+            // TODO where do we store it
+        }
+        
         return element;
 
     }

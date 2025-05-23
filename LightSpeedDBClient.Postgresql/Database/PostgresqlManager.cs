@@ -1,4 +1,5 @@
 
+using System.Collections;
 using System.Reflection;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Exceptions;
@@ -190,9 +191,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
     {
         
         // TODO Check that all elements are objects
-        
-        E? savedElement = default(E);
-        
+   
         PostgresqlSaveQuery<E> saveQuery = new (Reflection, element);
 
         PostgresqlTransaction? transaction = null;
@@ -205,42 +204,14 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
 
         try
         {
-            await using var reader = await cmd.ExecuteReaderAsync();
-            if (await reader.ReadAsync())
-            {
-                savedElement = CreateObject();
-                savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(savedElement);
-            }
-            foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
-            {
-                if (await reader.NextResultAsync())
-                {
-                    List<IDatabaseObjectTableElement> list = new ();
-                    while (await reader.ReadAsync())
-                    {
-                        ITableReflection tableReflection = connectedTable.TableReflection();
-                        Type tableReflectionType = tableReflection.Type();
-                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(tableReflectionType);
-                        row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
-                        list.Add(row);
-                    }
-                    convertToTable(connectedTable.Property(), savedElement, list);
-                }
-                else
-                {
-                    throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
-                }
-            }
+            await cmd.ExecuteNonQueryAsync();
         } 
         catch (Exception e)
         {
             throw new DatabaseSaveException($"Error saving element", e);
         }
-        
-        if (savedElement == null)
-            throw new DatabaseSaveException($"Error saving element");
 
-        return savedElement;
+        return await GetByKeyAsync(element.Key());
         
     }
 
@@ -263,59 +234,38 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
 
         try
         {
-            await using var reader = await cmd.ExecuteReaderAsync();
-            while (await reader.ReadAsync())
-            {
-                E element = CreateObject();
-                E savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
-                savedElements.Add(savedElement.Key(), savedElement);
-            }
-            foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
-            {
-                if (await reader.NextResultAsync())
-                {
-                    List<IDatabaseObjectTableElement> list = new ();
-                    while (await reader.ReadAsync())
-                    {
-                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
-                        row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
-                        list.Add(row);
-                        // TODO how to sort them to elements?
-                    }
-                    
-                    foreach (var row in list)
-                    {
-                        
-                        IKey ownerKey = row.OwnerKey();
-                        List<KeyElement> keyParts = new List<KeyElement>();
-                        foreach (var ownerKeyPart in ownerKey.KeyElements())
-                        {
-                            keyParts.Add(new KeyElement(Reflection.GetColumnReflection(ownerKeyPart.Column().Relation()), ownerKeyPart.Value()));
-                        }
-                        IKey primaryKey = new Key(keyParts);
-                        
-                        savedElements.TryGetValue(primaryKey, out E? savedElement);
-                        if (savedElement == null)
-                        {
-                            throw new DatabaseException($"Error saving element, No element found for owner key {ownerKey}");
-                        }
-                        savedElement.Table(connectedTable.Name()).Add(row);
-                        
-                    }
-                    int i=0;
-                }
-                else
-                {
-                    throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
-                }
-            }
+            await cmd.ExecuteNonQueryAsync();
         } 
         catch (Exception e)
         {
             throw new DatabaseSaveException($"Error saving element", e);
         }
         
-        return savedElements.Values;
+        Dictionary<string, IFilter> filters = new Dictionary<string, IFilter>(); // TODO key should not be string
+        foreach (var element in elements)
+        {
+            foreach (var keyElement in element.Key().KeyElements()) 
+            {
+                filters.TryGetValue(keyElement.Column().Name(), out IFilter? filter);
+                if (filter == null)
+                {
+                    Type listType = typeof(List<>).MakeGenericType(keyElement.Column().Type());
+                    IList list = (IList) Activator.CreateInstance(listType);
+                    list.Add(keyElement.Value());
+                    filter = new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);  
+                }
+                else
+                {
+                    filters.Remove(keyElement.Column().Name());
+                    IList list = (IList) filter.Value();
+                    list.Add(keyElement.Value());
+                    filter =  new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);
+                }
+                filters.Add(keyElement.Column().Name(), filter);
+            }
+        }
+        
+        return await GetListObjectsAsync(filters.Values);
         
     }
 

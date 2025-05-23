@@ -55,7 +55,53 @@ public class PostgresqlSelectByKeyQuery: IQuery
                 sb.Append(", ");
             sb.Append(" ");
         }
+        // additional fields
+        var columnsWithAdditionalInfo = _reflection.MainTableReflection.ColumnsWithAdditionalInfo();
+        Dictionary<IColumnReflection, IColumnReflection> allAdditionalFields = new ();
+        foreach (var column in columnsWithAdditionalInfo)
+        {
+            foreach (IColumnReflection additionalField in column.AdditionalFields())
+            {
+                allAdditionalFields.Add(additionalField, column);
+            }
+        }
+        
+        if (allAdditionalFields.Count > 0)
+            sb.Append(",");
+
+        int index0 = 0;
+        foreach (var keyValue in allAdditionalFields)
+        {
+            IColumnReflection additionalField = keyValue.Key;
+            IColumnReflection column = keyValue.Value;
+            ITableReflection foreignKeyTable = column.ForeignKeyTable();
+            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
+            if (index0 < allAdditionalFields.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+            index0++;
+        }
+        
+        // Main table
         sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
+        
+        // Additional tables
+        foreach (var column in columnsWithAdditionalInfo)
+        {
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}.{column.ForeignKeyColumn().QueryName()}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+        }
+        
         sb.Append($" ");
         sb.Append($"WHERE");
         sb.Append($" ");
@@ -92,7 +138,54 @@ public class PostgresqlSelectByKeyQuery: IQuery
                 sb.Append(", ");
             sb.Append(" ");
         }
+        
+        // additional fields
+        var columnsWithAdditionalInfo = _reflection.MainTableReflection.ColumnsWithAdditionalInfo();
+        Dictionary<IColumnReflection, IColumnReflection> allAdditionalFields = new ();
+        foreach (var column in columnsWithAdditionalInfo)
+        {
+            foreach (IColumnReflection additionalField in column.AdditionalFields())
+            {
+                allAdditionalFields.Add(additionalField, column);
+            }
+        }
+        
+        if (allAdditionalFields.Count > 0)
+            sb.Append(",");
+
+        int index0 = 0;
+        foreach (var keyValue in allAdditionalFields)
+        {
+            IColumnReflection additionalField = keyValue.Key;
+            IColumnReflection column = keyValue.Value;
+            ITableReflection foreignKeyTable = column.ForeignKeyTable();
+            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
+            if (index0 < allAdditionalFields.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+            index0++;
+        }
+        
+        // Main table
         sb.Append($"FROM {connectedTable.QueryName()} as {connectedTable.QueryName()}");
+        
+        // Additional tables
+        foreach (var column in columnsWithAdditionalInfo)
+        {
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}.{column.ForeignKeyColumn().QueryName()}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+        }
+        
         sb.Append($" ");
         sb.Append($"WHERE");
         sb.Append($" ");

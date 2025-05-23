@@ -87,7 +87,7 @@ public class PostgresqlSelectListQuery: IQuery
             IColumnReflection column = keyValue.Value;
             ITableReflection foreignKeyTable = column.ForeignKeyTable();
             sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
-            if (index0 < columns.Count - 1)
+            if (index0 < allAdditionalFields.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
             index0++;
