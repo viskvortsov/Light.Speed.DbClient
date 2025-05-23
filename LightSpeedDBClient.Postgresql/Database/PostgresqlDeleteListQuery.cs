@@ -22,11 +22,32 @@ public class PostgresqlDeleteListQuery: IQuery
     public string GetQueryText()
     {
         
-        // TODO what about connected tables?
-        
         _parameters.Clear();
         int i = 0;
 
+        StringBuilder sb = new StringBuilder();
+        
+        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
+        foreach (var connectedTable in connectedTables)
+        {
+            sb.Append(ConnectedTableDeleteQuery(connectedTable));
+            sb.Append(" ");
+        }
+        
+        sb.Append(MainRowDeleteQuery());
+        sb.Append($" ");
+        
+        return sb.ToString();
+        
+    }
+
+    public IQueryParameters Parameters()
+    {
+        return _parameters;
+    }
+
+    private string MainRowDeleteQuery()
+    {
         StringBuilder sb = new StringBuilder();
         sb.Append($"DELETE");
         sb.Append($" ");
@@ -56,66 +77,57 @@ public class PostgresqlDeleteListQuery: IQuery
             sb.Append($" ");
             sb.Append($"WHERE true");
         }
-        
         sb.Append($";");
-        sb.Append($" ");
-        
-        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
-
-        foreach (var connectedTable in connectedTables)
-        {
-            sb.Append($"DELETE");
-            sb.Append($" ");
-            sb.Append($"FROM {connectedTable.QueryName()}");
-            sb.Append($" ");
-            sb.Append($"USING");
-            sb.Append($" ");
-            sb.Append($"{_reflection.MainTableReflection.QueryName()}");
-            sb.Append($" ");
-            sb.Append($"WHERE");
-            sb.Append($" ");
-            
-            List<IColumnReflection> ownerKeys = connectedTable.TableReflection().PartsOfOwnerKey().ToList();
-        
-            int index2 = 0;
-            foreach (var keyPart in ownerKeys)
-            {
-                sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {_reflection.MainTableReflection.QueryName()}.{keyPart.Relation()}");
-                if (index2 < ownerKeys.Count - 1)
-                {
-                    sb.Append(" ");
-                    sb.Append("AND");
-                    sb.Append(" ");
-                }
-                sb.Append(" ");
-                index2++;
-            }
-            
-            if (_filters.Any())
-            {
-                List<IFilter> filters = _filters.ToList();
-                int index4 = 0;
-                foreach (IFilter filter in _filters)
-                {
-                    var value = filter.Value();
-                    var type = value.GetType();
-                    string parameterName =_parameters.Add(type, value);
-                    sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
-                    if (index4 < filters.Count - 1)
-                        sb.Append(", ");
-                    sb.Append(" ");
-                }
-            }
-            sb.Append($";");
-        }
-        
         return sb.ToString();
-        
     }
 
-    public IQueryParameters Parameters()
+    private string ConnectedTableDeleteQuery(IConnectedTable connectedTable)
     {
-        return _parameters;
+        StringBuilder sb = new StringBuilder();
+        sb.Append($"DELETE");
+        sb.Append($" ");
+        sb.Append($"FROM {connectedTable.QueryName()}");
+        sb.Append($" ");
+        sb.Append($"USING");
+        sb.Append($" ");
+        sb.Append($"{_reflection.MainTableReflection.QueryName()}");
+        sb.Append($" ");
+        sb.Append($"WHERE");
+        sb.Append($" ");
+            
+        List<IColumnReflection> ownerKeys = connectedTable.TableReflection().PartsOfOwnerKey().ToList();
+        
+        int index2 = 0;
+        foreach (var keyPart in ownerKeys)
+        {
+            sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {_reflection.MainTableReflection.QueryName()}.{keyPart.Relation()}");
+            if (index2 < ownerKeys.Count - 1)
+            {
+                sb.Append(" ");
+                sb.Append("AND");
+                sb.Append(" ");
+            }
+            sb.Append(" ");
+            index2++;
+        }
+            
+        if (_filters.Any())
+        {
+            List<IFilter> filters = _filters.ToList();
+            int index4 = 0;
+            foreach (IFilter filter in _filters)
+            {
+                var value = filter.Value();
+                var type = value.GetType();
+                string parameterName =_parameters.Add(type, value);
+                sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
+                if (index4 < filters.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+            }
+        }
+        sb.Append($";");
+        return sb.ToString();
     }
     
 }
