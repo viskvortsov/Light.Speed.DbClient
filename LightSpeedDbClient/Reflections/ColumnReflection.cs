@@ -1,5 +1,7 @@
 using System.Reflection;
 using LightSpeedDbClient.Attributes;
+using LightSpeedDbClient.Database;
+using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Reflections;
 
@@ -9,6 +11,7 @@ public class ColumnReflection : IColumnReflection
     private readonly string _name;
     private readonly string _queryName;
     private readonly Type _type;
+    private readonly IQueryType _queryType;
     private readonly PropertyInfo _property;
     private readonly bool _isPartOfPrimaryKey;
     private readonly bool _isPartOfOwnerKey;
@@ -16,6 +19,10 @@ public class ColumnReflection : IColumnReflection
     
     internal ColumnReflection(PropertyInfo property)
     {
+        
+        _name = property.Name.ToLower();
+        _type = property.PropertyType;
+        _property = property;
         
         PrimaryKeyAttribute? primaryKey = property.GetCustomAttribute<PrimaryKeyAttribute>();
         
@@ -40,9 +47,10 @@ public class ColumnReflection : IColumnReflection
             _queryName = column.Name.ToLower();
         }
 
-        _name = property.Name.ToLower();
-        _type = property.PropertyType;
-        _property = property;
+        if (column != null)
+        {
+            _queryType = ClientSettings.GetQueryType(_type);
+        }
 
     }
 
@@ -59,6 +67,11 @@ public class ColumnReflection : IColumnReflection
     public Type Type()
     {
         return _type;
+    }
+
+    public IQueryType QueryType()
+    {
+        return _queryType;
     }
 
     public string Relation()

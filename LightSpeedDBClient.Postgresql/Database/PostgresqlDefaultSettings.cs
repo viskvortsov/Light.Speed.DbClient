@@ -1,3 +1,5 @@
+using LightSpeedDbClient.Implementations;
+using LightSpeedDbClient.Models;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -34,6 +36,21 @@ public class PostgresqlDefaultSettings
         { typeof(short),    NpgsqlDbType.Smallint },
         { typeof(int),    NpgsqlDbType.Integer },
         { typeof(long),    NpgsqlDbType.Bigint }
+    };
+    
+    internal static readonly Dictionary<Type, IQueryType> DefaultQueryTypes = new()
+    {
+        { typeof(Guid),    new QueryType("UUID") },
+        { typeof(string),  new QueryType("VARCHAR(255)") },
+        { typeof(bool),    new QueryType("BOOLEAN") },
+        { typeof(byte),    new QueryType("BYTEA") },
+        { typeof(DateTime),    new QueryType("TIMESTAMP WITH TIME ZONE") },
+        { typeof(decimal),    new QueryType("NUMERIC") },
+        { typeof(double),    new QueryType("DOUBLE PRECISION") },
+        { typeof(float),    new QueryType("REAL") },
+        { typeof(short),    new QueryType("SMALLINT") },
+        { typeof(int),    new QueryType("INTEGER") },
+        { typeof(long),    new QueryType("BIGINT") }
     };
     
 }

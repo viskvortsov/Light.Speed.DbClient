@@ -1,5 +1,6 @@
 using System.Reflection;
 using LightSpeedDbClient.Exceptions;
+using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDbClient.Database;
@@ -10,6 +11,8 @@ public class ClientSettings
     private static Dictionary<Type, ConstructorInfo> _constructors { get; } = new();
     private static Dictionary<Type, DatabaseObjectReflection> _reflections { get; } = new();
     private static Dictionary<Type, ITableReflection> _connectedTablesReflections { get; } = new();
+    private static Dictionary<Type, IQueryType> _queryTypes = new ();
+    
     internal static ConstructorInfo GetConstructor(Type type)
     {
 
@@ -70,6 +73,21 @@ public class ClientSettings
 
         throw new ReflectionException(); // TODO
 
+    }
+
+    public static void SetQueryTypes(Dictionary<Type, IQueryType> queryTypes)
+    {
+        _queryTypes = queryTypes;
+    }
+    
+    public static IQueryType GetQueryType(Type type)
+    {
+        _queryTypes.TryGetValue(type, out var value);
+        if (value == null)
+        {
+            throw new ReflectionException(); // TODO
+        }
+        return value;
     }
     
 }

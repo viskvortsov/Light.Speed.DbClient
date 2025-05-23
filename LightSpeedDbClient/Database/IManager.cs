@@ -17,6 +17,8 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
     E Create();
     Task<IEnumerable<E>> GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);
     Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null);
+    Task<IEnumerable<E>> GetListObjectsAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);
+    Task<IEnumerable<E>> GetListObjectsAsync(int? page = null, int? limit = null);
     Task<E> GetByKeyAsync(IKey key);
     Task<int> CountAsync(IEnumerable<IFilter> filters);
     Task<int> CountAsync();

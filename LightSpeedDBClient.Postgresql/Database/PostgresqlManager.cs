@@ -49,7 +49,75 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
     {
         return await GetListAsync(new List<IFilter>(), page, limit);
     }
+
+    public override async Task<IEnumerable<E>> GetListObjectsAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null)
+    {
+        Dictionary<IKey, E> elements = new ();
+        
+        PostgresqlSelectListObjectsQuery selectListQuery = new PostgresqlSelectListObjectsQuery(filters, Reflection, page, limit);
+
+        PostgresqlTransaction? transaction = null;
+        if (Transaction != null)
+        {
+            transaction = (PostgresqlTransaction)Transaction;
+        }
+
+        await using PostgresqlCommand cmd = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
+        await using var reader = await cmd.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            E element = Create();
+            element = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
+            elements.Add(element.Key(), element);
+        }
+        foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
+        {
+            if (await reader.NextResultAsync())
+            {
+                List<IDatabaseObjectTableElement> list = new ();
+                while (await reader.ReadAsync())
+                {
+                    IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
+                    row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
+                    list.Add(row);
+                    // TODO how to sort them to elements?
+                }
+                    
+                foreach (var row in list)
+                {
+                        
+                    IKey ownerKey = row.OwnerKey();
+                    List<KeyElement> keyParts = new List<KeyElement>();
+                    foreach (var ownerKeyPart in ownerKey.KeyElements())
+                    {
+                        keyParts.Add(new KeyElement(Reflection.GetColumnReflection(ownerKeyPart.Column().Relation()), ownerKeyPart.Value()));
+                    }
+                    IKey primaryKey = new Key(keyParts);
+                        
+                    elements.TryGetValue(primaryKey, out E? savedElement);
+                    if (savedElement == null)
+                    {
+                        throw new DatabaseException($"Error saving element, No element found for owner key {ownerKey}");
+                    }
+                    savedElement.Table(connectedTable.Name()).Add(row);
+                        
+                }
+                int i=0;
+            }
+            else
+            {
+                throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
+            }
+        }
+
+        return elements.Values;
+    }
     
+    public override async Task<IEnumerable<E>> GetListObjectsAsync(int? page = null, int? limit = null)
+    {
+        return await GetListObjectsAsync(new List<IFilter>(), page, limit);
+    }
+
     public override async Task<int> CountAsync()
     {
         return await CountAsync(new List<IFilter>());

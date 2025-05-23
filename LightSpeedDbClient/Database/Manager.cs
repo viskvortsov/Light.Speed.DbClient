@@ -33,6 +33,12 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
     public abstract Task<IEnumerable<E>>
         GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);
     public abstract Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null);
+
+    public abstract Task<IEnumerable<E>> GetListObjectsAsync(IEnumerable<IFilter> filters, int? page = null,
+        int? limit = null);
+
+    public abstract Task<IEnumerable<E>> GetListObjectsAsync(int? page = null, int? limit = null);
+
     public abstract Task<int> CountAsync(IEnumerable<IFilter> filters);
     public abstract Task<int> CountAsync();
     public abstract Task<E> GetByKeyAsync(IKey key);

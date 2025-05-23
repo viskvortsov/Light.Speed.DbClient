@@ -97,7 +97,11 @@ public class Tests
         };
         IEnumerable<Currency> currencies3 = await manager.GetListAsync(filters2,1, 100);
         Assert.NotNull(currencies3);
-        Assert.That(currencies3.Count(), Is.EqualTo(1));
+        Assert.That(currencies3.Count(), Is.EqualTo(2));
+        
+        IEnumerable<Currency> currencies7 = await manager.GetListObjectsAsync(filters2,1, 100);
+        Assert.NotNull(currencies7);
+        Assert.That(currencies7.Count(), Is.EqualTo(2));
         
         await transaction.CommitAsync();
 
