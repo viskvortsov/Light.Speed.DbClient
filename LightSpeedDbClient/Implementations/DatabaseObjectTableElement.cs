@@ -29,4 +29,24 @@ public class DatabaseObjectTableElement : IDatabaseObjectTableElement
         }
         return new Key(keyElements);
     }
+
+    public ModelType ModelType()
+    {
+        return Models.ModelType.Row;
+    }
+
+    public bool IsObject()
+    {
+        return false;
+    }
+
+    public bool IsReference()
+    {
+        return false;
+    }
+
+    public bool IsRow()
+    {
+        return true;
+    }
 }

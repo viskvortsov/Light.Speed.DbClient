@@ -1,12 +1,16 @@
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Implementations;
+using LightSpeedDbClient.Models;
 
 namespace ExampleModels.Currencies;
 
 [Model(table: "currencies")]
 public class Currency : DatabaseObject
 {
-    
+    public Currency(ModelType modelType) : base(modelType)
+    {
+    }
+
     [PrimaryKey]
     [Column]
     public Guid Id { get; set; }

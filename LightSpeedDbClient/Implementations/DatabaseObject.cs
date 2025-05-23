@@ -1,5 +1,6 @@
 using System.Reflection;
 using LightSpeedDbClient.Database;
+using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
@@ -8,12 +9,16 @@ namespace LightSpeedDbClient.Implementations;
 public abstract class DatabaseObject : IDatabaseObject
 {
     private readonly DatabaseObjectReflection _reflection;
+    private readonly ModelType _modelType;
 
-    protected DatabaseObject()
+    protected DatabaseObject(ModelType modelType)
     {
         _reflection = ClientSettings.GetReflection(GetType());
+        _modelType = modelType;
+        if (_modelType == Models.ModelType.Row)
+            throw new ReflectionException(); // TODO
     }
-    
+
     public IKey Key()
     {
         IEnumerable<IColumnReflection> partsOfPrimaryKey = _reflection.MainTableReflection.PartsOfPrimaryKey();
@@ -39,4 +44,23 @@ public abstract class DatabaseObject : IDatabaseObject
         return table;
     }
 
+    public ModelType ModelType()
+    {
+        return _modelType;
+    }
+
+    public bool IsObject()
+    {
+        return _modelType == Models.ModelType.Object;
+    }
+
+    public bool IsReference()
+    {
+        return _modelType == Models.ModelType.Reference;
+    }
+
+    public bool IsRow()
+    {
+        return _modelType == Models.ModelType.Row;
+    }
 }

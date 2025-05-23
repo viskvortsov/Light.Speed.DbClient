@@ -20,9 +20,14 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
         Reflection = ClientSettings.GetReflection(typeof(E));
     }
     
-    public E Create()
+    public E CreateObject()
     {
-        return (E) ClientSettings.GetConstructor(typeof(E)).Invoke(new object[]{});;
+        return (E) ClientSettings.GetConstructor(typeof(E)).Invoke(new object[]{ModelType.Object});;
+    }
+    
+    public E CreateReference()
+    {
+        return (E) ClientSettings.GetConstructor(typeof(E)).Invoke(new object[]{ModelType.Reference});;
     }
     
     public object CreateRow(Type type)

@@ -28,7 +28,7 @@ public class Tests
         Assert.NotNull(currencies);
         Assert.That(currencies.Count(), Is.EqualTo(0));
         
-        Currency currency = manager.Create();
+        Currency currency = manager.CreateObject();
         Assert.NotNull(currency);
         
         currency.Id = Guid.NewGuid();
@@ -66,7 +66,7 @@ public class Tests
         Assert.That(currency4.Name, Is.EqualTo(currency3.Name));
         Assert.That(currency4.Deleted, Is.EqualTo(currency3.Deleted));
         
-        Currency currency10 = manager.Create();
+        Currency currency10 = manager.CreateObject();
         currency10.Id = Guid.NewGuid();
         currency10.Name = "Euro";
         currency10.Deleted = "dj";

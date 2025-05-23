@@ -6,15 +6,14 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
 {
     
     // TODO add connected tables filter to GetListAsync, CountAsync, DeleteAsync
-    // TODO add GetListObjectsAsync
-    // TODO add difference with Reference and Object
-    
+
     // TODO add Additional fields
     // TODO add localization
     
     // TODO Change all owner keys with primary keys before save
     
-    E Create();
+    E CreateObject();
+    E CreateReference();
     Task<IEnumerable<E>> GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);
     Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null);
     Task<IEnumerable<E>> GetListObjectsAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);

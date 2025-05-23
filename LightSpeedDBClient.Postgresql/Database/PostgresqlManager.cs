@@ -36,7 +36,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            E element = Create();
+            E element = CreateReference();
             element = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
             elements.Add(element);
         }
@@ -66,7 +66,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            E element = Create();
+            E element = CreateObject();
             element = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
             elements.Add(element.Key(), element);
         }
@@ -148,7 +148,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                receivedElement = Create();
+                receivedElement = CreateObject();
                 receivedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(receivedElement);
             }
 
@@ -189,6 +189,8 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
     public override async Task<E> SaveAsync(E element)
     {
         
+        // TODO Check that all elements are objects
+        
         E? savedElement = default(E);
         
         PostgresqlSaveQuery<E> saveQuery = new (Reflection, element);
@@ -206,7 +208,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
-                savedElement = Create();
+                savedElement = CreateObject();
                 savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(savedElement);
             }
             foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
@@ -243,6 +245,8 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
     public override async Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements)
     {
         
+        // TODO Check that all elements are objects
+        
         Dictionary<IKey, E> savedElements = new ();
         
         PostgresqlSaveQuery<E> saveQuery = new (Reflection, elements);
@@ -260,7 +264,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
             await using var reader = await cmd.ExecuteReaderAsync();
             while (await reader.ReadAsync())
             {
-                E element = Create();
+                E element = CreateObject();
                 E savedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
                 savedElements.Add(savedElement.Key(), savedElement);
             }
