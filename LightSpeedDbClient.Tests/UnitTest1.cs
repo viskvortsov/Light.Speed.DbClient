@@ -13,6 +13,45 @@ public class Tests
     }
 
     [Test]
+    public async Task Test2()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        IManager<Currency> manager = new PostgresqlManager<Currency>(connection, transaction);
+        await manager.DeleteAsync();
+
+        List<Currency> currencies = new List<Currency>();
+        foreach (int i in Enumerable.Range(1, 10000))
+        {
+            Currency currency = manager.CreateObject();
+            currency.Id = Guid.NewGuid();
+            currency.Name = "Euro";
+            currency.Deleted = "dj";
+            currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  1, currency.Id));
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  2, currency.Id));
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  3, currency.Id));
+        
+            currency.Codes = new DatabaseObjectTable<CurrencyCodeRow>();
+            currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "USD", currency.Id));
+            currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "864", currency.Id));
+            currencies.Add(currency);
+        }
+
+        IEnumerable<Currency> currencies2 = await manager.SaveManyAsync(currencies);
+        Assert.NotNull(currencies2);
+        Assert.That(currencies2.Count(), Is.EqualTo(10000));
+        
+        await transaction.CommitAsync();
+
+        await transaction.DisposeAsync();
+        await connection.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+
+    [Test]
     public async Task Test1()
     {
         IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");

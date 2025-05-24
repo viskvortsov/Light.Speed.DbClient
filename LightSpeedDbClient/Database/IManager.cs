@@ -12,6 +12,10 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
     
     // TODO Change all owner keys with primary keys before save
     
+    // TODO IN filter to ListAsync and ListObjectsAsync
+    
+    // TODO 100 000 elements test
+    
     E CreateObject();
     E CreateReference();
     Task<IEnumerable<E>> GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);
@@ -22,7 +26,7 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
     Task<int> CountAsync(IEnumerable<IFilter> filters);
     Task<int> CountAsync();
     Task<E> SaveAsync(E element);
-    Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements);
+    Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements, int chunkSize = 1000);
     Task<int> DeleteAsync();
     Task<int> DeleteAsync(IEnumerable<IFilter> filters);
     Task<int> DeleteByKeyAsync(IKey key);

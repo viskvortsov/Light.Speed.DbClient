@@ -53,7 +53,7 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
     public abstract Task<int> CountAsync();
     public abstract Task<E> GetByKeyAsync(IKey key);
     public abstract Task<E> SaveAsync(E element);
-    public abstract Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements);
+    public abstract Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements, int chunkSize = 1000);
 
     public abstract Task<int> DeleteAsync(IEnumerable<IFilter> filters);
     public abstract Task<int> DeleteByKeyAsync(IKey key);

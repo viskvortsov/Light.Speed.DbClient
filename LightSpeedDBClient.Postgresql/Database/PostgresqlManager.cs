@@ -215,61 +215,72 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         
     }
 
-    public override async Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements)
+    public override async Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements, int chunkSize = 1000)
     {
         
         // TODO Check that all elements are objects
+        // TODO create a 100k limit
         
         Dictionary<IKey, E> savedElements = new ();
         
-        PostgresqlSaveQuery<E> saveQuery = new (Reflection, elements);
-
+        IEnumerable<E[]> chunks = elements.Chunk(chunkSize);
+        
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
         {
             transaction = (PostgresqlTransaction)Transaction;
         }
-
-        await using PostgresqlCommand cmd = new PostgresqlCommand(saveQuery, (PostgresqlConnection)Connection, transaction);
-
+        
+        PostgresqlBatch batch = new PostgresqlBatch((PostgresqlConnection)Connection, transaction);
+        foreach (var chunk in chunks)
+        {
+            PostgresqlSaveManyQueries<E> saveQuery = new (Reflection, chunk);
+            foreach (var subQuery in saveQuery.GetQueries())
+            {
+                PostgresqlBatchCommand cmd = new PostgresqlBatchCommand(subQuery);
+                batch.AddCommand(cmd);
+            }
+        }
+        
         try
         {
-            await cmd.ExecuteNonQueryAsync();
+            
+            await batch.ExecuteNonQueryAsync();
+            
+            Dictionary<string, IFilter> filters = new Dictionary<string, IFilter>(); // TODO key should not be string
+            foreach (var element in elements)
+            {
+                foreach (var keyElement in element.Key().KeyElements()) 
+                {
+                    filters.TryGetValue(keyElement.Column().Name(), out IFilter? filter);
+                    if (filter == null)
+                    {
+                        Type listType = typeof(List<>).MakeGenericType(keyElement.Column().Type());
+                        IList list = (IList) Activator.CreateInstance(listType);
+                        list.Add(keyElement.Value());
+                        filter = new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);  
+                    }
+                    else
+                    {
+                        filters.Remove(keyElement.Column().Name());
+                        IList list = (IList) filter.Value();
+                        list.Add(keyElement.Value());
+                        filter =  new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);
+                    }
+                    filters.Add(keyElement.Column().Name(), filter);
+                }
+            }
+        
+            return await GetListObjectsAsync(filters.Values);
+            
         } 
         catch (Exception e)
         {
             throw new DatabaseSaveException($"Error saving element", e);
         }
         
-        Dictionary<string, IFilter> filters = new Dictionary<string, IFilter>(); // TODO key should not be string
-        foreach (var element in elements)
-        {
-            foreach (var keyElement in element.Key().KeyElements()) 
-            {
-                filters.TryGetValue(keyElement.Column().Name(), out IFilter? filter);
-                if (filter == null)
-                {
-                    Type listType = typeof(List<>).MakeGenericType(keyElement.Column().Type());
-                    IList list = (IList) Activator.CreateInstance(listType);
-                    list.Add(keyElement.Value());
-                    filter = new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);  
-                }
-                else
-                {
-                    filters.Remove(keyElement.Column().Name());
-                    IList list = (IList) filter.Value();
-                    list.Add(keyElement.Value());
-                    filter =  new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);
-                }
-                filters.Add(keyElement.Column().Name(), filter);
-            }
-        }
-        
-        return await GetListObjectsAsync(filters.Values);
-        
     }
-
-
+    
     public override async Task<int> DeleteAsync()
     {
         return await DeleteAsync(new List<IFilter>()); 
