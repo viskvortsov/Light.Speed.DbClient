@@ -16,6 +16,7 @@ public interface IColumnReflection
     bool HasAdditionalFields();
     bool HasForeignKeyTable();
     IEnumerable<IColumnReflection> AdditionalFields();
+    public string ForeignKeyName();
     ITableReflection ForeignKeyTable();
     IColumnReflection ForeignKeyColumn();
 }

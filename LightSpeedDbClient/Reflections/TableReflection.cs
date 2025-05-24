@@ -12,6 +12,7 @@ public class TableReflection : ITableReflection
     private readonly Type _type;
     
     private readonly List<IColumnReflection> _columns;
+    private readonly List<IColumnReflection> _additionalFields = new();
     private readonly List<IColumnReflection> _connectedTables;
     private readonly Dictionary<string, IColumnReflection> _partsOfPrimaryKey;
     private readonly Dictionary<string, IColumnReflection> _partsOfOwnerKey;
@@ -36,6 +37,7 @@ public class TableReflection : ITableReflection
         FillTables();
         FillPrimaryKeys();
         FillOwnerKeys();
+        FillAdditionalFields();
 
     }
     
@@ -48,12 +50,32 @@ public class TableReflection : ITableReflection
             ColumnAttribute? column = property.GetCustomAttribute<ColumnAttribute>();
             if (column != null)
             {
-                ColumnReflection columnReflection = new(property);
+                ColumnReflection columnReflection = new(property, this);
                 if (_columns.Contains(columnReflection))
                 {
                     throw new ReflectionException();
                 }
                 _columns.Add(columnReflection);
+            }
+        }
+        
+    }
+    
+    private void FillAdditionalFields()
+    {
+
+        PropertyInfo[] properties = _type.GetProperties();
+        foreach (var property in properties)
+        {
+            AddInfoAttribute? column = property.GetCustomAttribute<AddInfoAttribute>();
+            if (column != null)
+            {
+                ColumnReflection columnReflection = new(property, this);
+                if (_additionalFields.Contains(columnReflection))
+                {
+                    throw new ReflectionException();
+                }
+                _additionalFields.Add(columnReflection);
             }
         }
         
@@ -68,7 +90,7 @@ public class TableReflection : ITableReflection
             TableAttribute? table = property.GetCustomAttribute<TableAttribute>();
             if (table != null)
             {
-                ColumnReflection columnReflection = new(property);
+                ColumnReflection columnReflection = new(property, this);
                 if (_connectedTables.Contains(columnReflection))
                 {
                     throw new ReflectionException();
@@ -161,16 +183,62 @@ public class TableReflection : ITableReflection
         return _connectedTables.SingleOrDefault(x => x.Name() == name.ToLower());
     }
 
-    public List<IColumnReflection> ColumnsWithAdditionalInfo()
+    public IEnumerable<IColumnReflection> ColumnsWithForeignKey()
     {
         List<IColumnReflection> columns = new ();
         foreach (var column in _columns)
         {
-            if (column.HasForeignKeyTable() && column.HasAdditionalFields())
-            {
+            if (column.HasForeignKeyTable())
                 columns.Add(column);
-            }
         }
         return columns;
     }
+
+    public IEnumerable<IColumnReflection> ColumnsWithAdditionalInfo(string foreignKeyName)
+    {
+        List<IColumnReflection> columns = new ();
+        foreach (var column in _additionalFields)
+        {
+            if (column.ForeignKeyName() == foreignKeyName)
+                columns.Add(column);
+        }
+        return columns;
+    }
+
+    public IEnumerable<IColumnReflection> AdditionalFields()
+    {
+        var columnsWithForeignKey = ColumnsWithForeignKey();
+        List<IColumnReflection> allAdditionalFields = new ();
+        var withForeignKey = columnsWithForeignKey.ToList();
+        foreach (var column in withForeignKey)
+        {
+            foreach (IColumnReflection additionalField in ColumnsWithAdditionalInfo(column.ForeignKeyName()))
+            {
+                allAdditionalFields.Add(additionalField);
+            }
+        }
+
+        return allAdditionalFields;
+    }
+
+    public IColumnReflection GetForeignKeyColumn(string name)
+    {
+
+        IColumnReflection? foreignKeyColumn = null;
+        foreach (var column in _columns)
+        {
+            if (column.HasForeignKeyTable() && column.ForeignKeyName().ToLower() == name.ToLower())
+            {
+                foreignKeyColumn = column;
+                break;
+            }
+        }
+        
+        if (foreignKeyColumn == null)
+            throw new ReflectionException(); // TODO
+
+        return foreignKeyColumn;
+
+    }
+    
 }

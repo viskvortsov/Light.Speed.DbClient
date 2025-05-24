@@ -67,27 +67,17 @@ public class PostgresqlSelectListQuery: IQuery
         }
         
         // additional fields
-        var columnsWithAdditionalInfo = _reflection.MainTableReflection.ColumnsWithAdditionalInfo();
-        Dictionary<IColumnReflection, IColumnReflection> allAdditionalFields = new ();
-        foreach (var column in columnsWithAdditionalInfo)
-        {
-            foreach (IColumnReflection additionalField in column.AdditionalFields())
-            {
-                allAdditionalFields.Add(additionalField, column);
-            }
-        }
+        var additionalFields = _reflection.MainTableReflection.AdditionalFields().ToList();
         
-        if (allAdditionalFields.Count > 0)
+        if (additionalFields.Count > 0)
             sb.Append(",");
 
         int index0 = 0;
-        foreach (var keyValue in allAdditionalFields)
+        foreach (var additionalField in additionalFields)
         {
-            IColumnReflection additionalField = keyValue.Key;
-            IColumnReflection column = keyValue.Value;
-            ITableReflection foreignKeyTable = column.ForeignKeyTable();
+            ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
             sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
-            if (index0 < allAdditionalFields.Count - 1)
+            if (index0 < additionalFields.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
             index0++;
@@ -97,7 +87,8 @@ public class PostgresqlSelectListQuery: IQuery
         sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
         
         // Additional tables
-        foreach (var column in columnsWithAdditionalInfo)
+        var additionalTables = _reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
+        foreach (var column in additionalTables)
         {
             sb.Append(" ");
             sb.Append("LEFT JOIN");

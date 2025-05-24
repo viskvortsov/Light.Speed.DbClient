@@ -12,6 +12,8 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
     
     // TODO Change all owner keys with primary keys before save
     
+    // TODO GetListObjectsAsync additional fields
+    
     E CreateObject();
     E CreateReference();
     Task<IEnumerable<E>> GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);
