@@ -8,8 +8,104 @@ namespace LightSpeedDbClient.Tests;
 public class Tests
 {
     [SetUp]
-    public void Setup()
+    public async Task Setup()
     {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<Company> coManager = new PostgresqlManager<Company>(connection, transaction);
+        IManager<Currency> manager = new PostgresqlManager<Currency>(connection, transaction);
+        
+        await coManager.DeleteAsync();
+        await manager.DeleteAsync();
+        
+        await transaction.CommitAsync();
+        await transaction.DisposeAsync();
+        await connection.DisposeAsync();
+        await db.DisposeAsync();
+        
+    }
+    
+    [Test]
+    public async Task Test3()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<Currency> manager = new PostgresqlManager<Currency>(connection, transaction);
+
+        List<Currency> currencies = new List<Currency>();
+        foreach (int i in Enumerable.Range(1, 5))
+        {
+            Currency currency = manager.CreateObject();
+            currency.Id = Guid.NewGuid();
+            currency.Name = "Euro";
+            currency.Deleted = "dj";
+            currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  1, currency.Id));
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  2, currency.Id));
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  3, currency.Id));
+        
+            currency.Codes = new DatabaseObjectTable<CurrencyCodeRow>();
+            currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "USD", currency.Id));
+            currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "864", currency.Id));
+            currencies.Add(currency);
+        }
+        
+        foreach (int i in Enumerable.Range(1, 5))
+        {
+            Currency currency = manager.CreateObject();
+            currency.Id = Guid.NewGuid();
+            currency.Name = "USD";
+            currency.Deleted = "dj";
+            currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  1, currency.Id));
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  2, currency.Id));
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  3, currency.Id));
+        
+            currency.Codes = new DatabaseObjectTable<CurrencyCodeRow>();
+            currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "USD", currency.Id));
+            currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "864", currency.Id));
+            currencies.Add(currency);
+        }
+        
+        foreach (int i in Enumerable.Range(1, 5))
+        {
+            Currency currency = manager.CreateObject();
+            currency.Id = Guid.NewGuid();
+            currency.Name = "KRW";
+            currency.Deleted = "dj";
+            currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  1, currency.Id));
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  2, currency.Id));
+            currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  3, currency.Id));
+        
+            currency.Codes = new DatabaseObjectTable<CurrencyCodeRow>();
+            currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "USD", currency.Id));
+            currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "864", currency.Id));
+            currencies.Add(currency);
+        }
+
+        IEnumerable<Currency> currencies2 = await manager.SaveManyAsync(currencies);
+        Assert.NotNull(currencies2);
+        Assert.That(currencies2.Count(), Is.EqualTo(15));
+        
+        List<IFilter> filters = new List<IFilter>()
+        {
+            new Filter<Currency>("name", ComparisonOperator.In, new List<string>(){"Euro", "USD"}),
+        };
+        IEnumerable<Currency> currencies3 = await manager.GetListAsync(filters,1, 100);
+        Assert.NotNull(currencies3);
+        Assert.That(currencies3.Count(), Is.EqualTo(10));
+        
+        await transaction.CommitAsync();
+
+        await transaction.DisposeAsync();
+        await connection.DisposeAsync();
+        await db.DisposeAsync();
+
     }
 
     [Test]
@@ -18,8 +114,8 @@ public class Tests
         IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
         IConnection connection = await db.OpenConnectionAsync();
         ITransaction transaction = await connection.BeginTransactionAsync();
+        
         IManager<Currency> manager = new PostgresqlManager<Currency>(connection, transaction);
-        await manager.DeleteAsync();
 
         List<Currency> currencies = new List<Currency>();
         foreach (int i in Enumerable.Range(1, 10000))
