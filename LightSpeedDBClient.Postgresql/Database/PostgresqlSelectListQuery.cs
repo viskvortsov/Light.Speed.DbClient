@@ -1,11 +1,12 @@
 using System.Text;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Exceptions;
+using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSelectListQuery: IQuery
+public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
 {
     
     private readonly DatabaseObjectReflection _reflection;
@@ -13,9 +14,9 @@ public class PostgresqlSelectListQuery: IQuery
     private readonly int? _limit;
     private readonly bool _usePagination;
     private readonly QueryParameters _parameters;
-    private readonly IEnumerable<IFilter> _filters;
+    private readonly IFilters<E> _filters;
     
-    public PostgresqlSelectListQuery(IEnumerable<IFilter> filters, DatabaseObjectReflection reflection, int? page = null, int? limit = null)
+    public PostgresqlSelectListQuery(IFilters<E> filters, DatabaseObjectReflection reflection, int? page = null, int? limit = null)
     {
         _reflection = reflection;
         _page = page;
@@ -109,7 +110,7 @@ public class PostgresqlSelectListQuery: IQuery
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<IFilter> filters = _filters.ToList();
+            List<Filter<E>> filters = _filters.ToList();
             for (int i = 0; i < filters.Count; i++)
             {
                 var filter = filters[i];

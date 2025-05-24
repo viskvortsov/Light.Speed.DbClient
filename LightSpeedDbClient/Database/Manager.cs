@@ -31,6 +31,11 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
         return (E) ClientSettings.GetConstructor(typeof(E)).Invoke(new object[]{ModelType.Reference});;
     }
     
+    public IFilters<E> CreateFilters()
+    {
+        return new Filters<E>();
+    }
+    
     public object CreateRow(Type type)
     {
 
@@ -41,21 +46,21 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
     }
 
     public abstract Task<IEnumerable<E>>
-        GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null);
+        GetListAsync(IFilters<E> filters, int? page = null, int? limit = null);
     public abstract Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null);
 
-    public abstract Task<IEnumerable<E>> GetListObjectsAsync(IEnumerable<IFilter> filters, int? page = null,
+    public abstract Task<IEnumerable<E>> GetListObjectsAsync(IFilters<E> filters, int? page = null,
         int? limit = null);
 
     public abstract Task<IEnumerable<E>> GetListObjectsAsync(int? page = null, int? limit = null);
 
-    public abstract Task<int> CountAsync(IEnumerable<IFilter> filters);
+    public abstract Task<int> CountAsync(IFilters<E> filters);
     public abstract Task<int> CountAsync();
     public abstract Task<E> GetByKeyAsync(IKey key);
     public abstract Task<E> SaveAsync(E element);
     public abstract Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements, int chunkSize = 1000);
 
-    public abstract Task<int> DeleteAsync(IEnumerable<IFilter> filters);
+    public abstract Task<int> DeleteAsync(IFilters<E> filters);
     public abstract Task<int> DeleteByKeyAsync(IKey key);
     public abstract Task<int> DeleteAsync();
 

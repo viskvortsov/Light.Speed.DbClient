@@ -20,12 +20,12 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
 
     public PostgresqlManager(IConnection connection, ITransaction transaction) : base(connection, transaction){}
 
-    public override async Task<IEnumerable<E>> GetListAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null)
+    public override async Task<IEnumerable<E>> GetListAsync(IFilters<E> filters, int? page = null, int? limit = null)
     {
         
         var elements = new List<E>();
         
-        PostgresqlSelectListQuery selectListQuery = new PostgresqlSelectListQuery(filters, Reflection, page, limit);
+        PostgresqlSelectListQuery<E> selectListQuery = new PostgresqlSelectListQuery<E>(filters, Reflection, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -48,14 +48,14 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
 
     public override async Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null)
     {
-        return await GetListAsync(new List<IFilter>(), page, limit);
+        return await GetListAsync(new Filters<E>(), page, limit);
     }
 
-    public override async Task<IEnumerable<E>> GetListObjectsAsync(IEnumerable<IFilter> filters, int? page = null, int? limit = null)
+    public override async Task<IEnumerable<E>> GetListObjectsAsync(IFilters<E> filters, int? page = null, int? limit = null)
     {
         Dictionary<IKey, E> elements = new ();
         
-        PostgresqlSelectListObjectsQuery selectListQuery = new PostgresqlSelectListObjectsQuery(filters, Reflection, page, limit);
+        PostgresqlSelectListObjectsQuery<E> selectListQuery = new PostgresqlSelectListObjectsQuery<E>(filters, Reflection, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -116,15 +116,15 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
     
     public override async Task<IEnumerable<E>> GetListObjectsAsync(int? page = null, int? limit = null)
     {
-        return await GetListObjectsAsync(new List<IFilter>(), page, limit);
+        return await GetListObjectsAsync(new Filters<E>(), page, limit);
     }
 
     public override async Task<int> CountAsync()
     {
-        return await CountAsync(new List<IFilter>());
+        return await CountAsync(new Filters<E>());
     }
 
-    public override async Task<int> CountAsync(IEnumerable<IFilter> filters)
+    public override async Task<int> CountAsync(IFilters<E> filters)
     {
         throw new NotImplementedException();
     }
@@ -247,12 +247,12 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
             
             await batch.ExecuteNonQueryAsync();
             
-            Dictionary<string, IFilter> filters = new Dictionary<string, IFilter>(); // TODO key should not be string
+            Dictionary<string, Filter<E>> filtersDict = new Dictionary<string, Filter<E>>(); // TODO key should not be string
             foreach (var element in elements)
             {
                 foreach (var keyElement in element.Key().KeyElements()) 
                 {
-                    filters.TryGetValue(keyElement.Column().Name(), out IFilter? filter);
+                    filtersDict.TryGetValue(keyElement.Column().Name(), out Filter<E>? filter);
                     if (filter == null)
                     {
                         Type listType = typeof(List<>).MakeGenericType(keyElement.Column().Type());
@@ -262,16 +262,22 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
                     }
                     else
                     {
-                        filters.Remove(keyElement.Column().Name());
+                        filtersDict.Remove(keyElement.Column().Name());
                         IList list = (IList) filter.Value();
                         list.Add(keyElement.Value());
                         filter =  new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);
                     }
-                    filters.Add(keyElement.Column().Name(), filter);
+                    filtersDict.Add(keyElement.Column().Name(), filter);
                 }
             }
+
+            Filters<E> filters = new ();
+            foreach (var keyValue in filtersDict)
+            {
+                filters.Add(keyValue.Value);
+            }
         
-            return await GetListObjectsAsync(filters.Values);
+            return await GetListObjectsAsync(filters);
             
         } 
         catch (Exception e)
@@ -283,12 +289,12 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
     
     public override async Task<int> DeleteAsync()
     {
-        return await DeleteAsync(new List<IFilter>()); 
+        return await DeleteAsync(new Filters<E>()); 
     }
     
-    public override async Task<int> DeleteAsync(IEnumerable<IFilter> filters)
+    public override async Task<int> DeleteAsync(IFilters<E> filters)
     {
-        PostgresqlDeleteListQuery selectListQuery = new PostgresqlDeleteListQuery(filters, Reflection);
+        PostgresqlDeleteListQuery<E> selectListQuery = new PostgresqlDeleteListQuery<E>(filters, Reflection);
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
         {

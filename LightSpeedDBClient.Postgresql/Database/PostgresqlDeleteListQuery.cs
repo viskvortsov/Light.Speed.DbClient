@@ -1,18 +1,19 @@
 using System.Text;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Exceptions;
+using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlDeleteListQuery: IQuery
+public class PostgresqlDeleteListQuery<E>: IQuery where E : IDatabaseElement
 {
     
     private readonly DatabaseObjectReflection _reflection;
     private readonly QueryParameters _parameters;
-    private readonly IEnumerable<IFilter> _filters;
+    private readonly IFilters<E> _filters;
     
-    public PostgresqlDeleteListQuery(IEnumerable<IFilter> filters, DatabaseObjectReflection reflection)
+    public PostgresqlDeleteListQuery(IFilters<E> filters, DatabaseObjectReflection reflection)
     {
         _reflection = reflection;
         _filters = filters;
@@ -58,9 +59,9 @@ public class PostgresqlDeleteListQuery: IQuery
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<IFilter> filters = _filters.ToList();
+            List<Filter<E>> filters = _filters.ToList();
             int index1 = 0;
-            foreach (IFilter filter in filters)
+            foreach (Filter<E> filter in filters)
             {
                 var value = filter.Value();
                 var type = value.GetType();
@@ -113,9 +114,9 @@ public class PostgresqlDeleteListQuery: IQuery
             
         if (_filters.Any())
         {
-            List<IFilter> filters = _filters.ToList();
+            List<Filter<E>> filters = _filters.ToList();
             int index4 = 0;
-            foreach (IFilter filter in _filters)
+            foreach (Filter<E> filter in _filters)
             {
                 var value = filter.Value();
                 var type = value.GetType();

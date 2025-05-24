@@ -91,11 +91,10 @@ public class Tests
         IEnumerable<Currency> currencies2 = await manager.SaveManyAsync(currencies);
         Assert.NotNull(currencies2);
         Assert.That(currencies2.Count(), Is.EqualTo(15));
+
+        IFilters<Currency> filters = manager.CreateFilters();
+        filters.Add(new Filter<Currency>("name", ComparisonOperator.Equals, "Euro"));
         
-        List<IFilter> filters = new List<IFilter>()
-        {
-            new Filter<Currency>("name", ComparisonOperator.In, new List<string>(){"Euro", "USD"}),
-        };
         IEnumerable<Currency> currencies3 = await manager.GetListAsync(filters,1, 100);
         Assert.NotNull(currencies3);
         Assert.That(currencies3.Count(), Is.EqualTo(10));
@@ -226,7 +225,7 @@ public class Tests
         
         IEnumerable<Currency> elements = await manager.SaveManyAsync(new List<Currency>(){currency10, currency4});
         
-        List<IFilter> filters = new List<IFilter>()
+        Filters<Currency> filters = new ()
         {
             new Filter<Currency>("name", ComparisonOperator.Equals, "Euro"),
             new Filter<Currency>("deleted", ComparisonOperator.NotEquals, "dj")
@@ -235,7 +234,7 @@ public class Tests
         Assert.NotNull(currencies2);
         Assert.That(currencies2.Count(), Is.EqualTo(0));
         
-        List<IFilter> filters2 = new List<IFilter>()
+        Filters<Currency> filters2 = new ()
         {
             new Filter<Currency>("name", ComparisonOperator.Equals, "Euro"),
             new Filter<Currency>("deleted", ComparisonOperator.Equals, "dj")
@@ -255,4 +254,54 @@ public class Tests
         await db.DisposeAsync();
 
     }
+    
+     [Test]
+    public async Task Test4()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<Company> coManager = new PostgresqlManager<Company>(connection, transaction);
+        IManager<Currency> manager = new PostgresqlManager<Currency>(connection, transaction);
+        
+        await coManager.DeleteAsync();
+        await manager.DeleteAsync();
+        
+        IEnumerable<Currency> currencies = await manager.GetListAsync(1, 100);
+        
+        Assert.NotNull(currencies);
+        Assert.That(currencies.Count(), Is.EqualTo(0));
+        
+        Currency currency = manager.CreateObject();
+        Assert.NotNull(currency);
+        
+        currency.Id = Guid.NewGuid();
+        currency.Name = "Euro";
+        currency.Deleted = "dj";
+        currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
+        currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  1, currency.Id));
+        currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  2, currency.Id));
+        currency.ExchangeRates.Add(new ExchangeRateRow(Guid.NewGuid(),  3, currency.Id));
+        
+        currency.Codes = new DatabaseObjectTable<CurrencyCodeRow>();
+        currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "USD", currency.Id));
+        currency.Codes.Add(new CurrencyCodeRow(Guid.NewGuid(),  "864", currency.Id));
+        
+        Currency currency2 = await manager.SaveAsync(currency);
+        
+        Filters<Currency> filters = new ()
+        {
+            new Filter<Currency>("exchangerates.rownumber", ComparisonOperator.Equals, 2)
+        };
+        IEnumerable<Currency> currencies3 = await manager.GetListAsync(filters,1, 100);
+        
+        await transaction.CommitAsync();
+
+        await transaction.DisposeAsync();
+        await connection.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
 }

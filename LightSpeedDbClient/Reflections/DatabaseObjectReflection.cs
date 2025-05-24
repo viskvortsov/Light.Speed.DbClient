@@ -33,6 +33,11 @@ public class DatabaseObjectReflection
         return _mainTableReflection.Columns().SingleOrDefault(x => x.Name() == name.ToLower());
     }
     
+    public IConnectedTable GetTableReflection(string name)
+    {
+        return _connectedTables.SingleOrDefault(x => x.Name() == name.ToLower());
+    }
+    
     public IColumnReflection GetPrimaryKeyPart(string name)
     {
         return _mainTableReflection.PartsOfPrimaryKey().SingleOrDefault(x => x.Name() == name.ToLower());
