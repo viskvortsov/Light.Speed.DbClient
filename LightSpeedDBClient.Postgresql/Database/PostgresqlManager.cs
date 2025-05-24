@@ -126,7 +126,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
 
     public override async Task<int> CountAsync(IFilters<E> filters)
     {
-        throw new NotImplementedException();
+        throw new NotImplementedException(); // TODO Implement count
     }
 
     public override async Task<E> GetByKeyAsync(IKey key)

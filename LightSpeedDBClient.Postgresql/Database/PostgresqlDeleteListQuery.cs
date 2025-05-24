@@ -49,17 +49,20 @@ public class PostgresqlDeleteListQuery<E>: IQuery where E : IDatabaseElement
 
     private string MainRowDeleteQuery()
     {
+        
+        // TODO Add connected tables filter
+        
         StringBuilder sb = new StringBuilder();
         sb.Append($"DELETE");
         sb.Append($" ");
         sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
 
-        if (_filters.Any())
+        if (_filters.HasMainTableFilters())
         {
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<E>> filters = _filters.ToList();
+            List<Filter<E>> filters = _filters.MainTableFilters().ToList();
             int index1 = 0;
             foreach (Filter<E> filter in filters)
             {

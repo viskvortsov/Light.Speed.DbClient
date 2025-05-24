@@ -5,11 +5,11 @@ namespace LightSpeedDbClient.Database;
 public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabaseElement
 {
     
-    // TODO add connected tables filter to CountAsync, DeleteAsync
-    
     // TODO add localization
-    
     // TODO Change all owner keys with primary keys before save
+    // TODO go through all todos
+    // TODO exceptions
+    // TODO debug logging and requests logging
 
     E CreateObject();
     E CreateReference();
