@@ -5,7 +5,7 @@ namespace LightSpeedDbClient.Database;
 public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabaseElement
 {
     
-    // TODO add connected tables filter to GetListAsync, CountAsync, DeleteAsync
+    // TODO add connected tables filter to CountAsync, DeleteAsync
     
     // TODO add localization
     

@@ -162,5 +162,10 @@ public class ColumnReflection : IColumnReflection
     {
         return _foreignKeyColumn;
     }
+
+    public ITableReflection Table()
+    {
+        return _tableReflection;
+    }
     
 }

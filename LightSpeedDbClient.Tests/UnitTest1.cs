@@ -292,14 +292,21 @@ public class Tests
         
         Filters<Currency> filters = new ()
         {
+            new Filter<Currency>("exchangerates.rownumber", ComparisonOperator.Equals, 2),
             new Filter<Currency>("exchangerates.rownumber", ComparisonOperator.Equals, 2)
         };
         IEnumerable<Currency> currencies3 = await manager.GetListAsync(filters,1, 100);
+        Assert.NotNull(currencies3);
+        Assert.That(currencies3.Count(), Is.EqualTo(1));
+        
+        IEnumerable<Currency> currencies4 = await manager.GetListObjectsAsync(filters,1, 100);
+        Assert.NotNull(currencies4);
+        Assert.That(currencies4.Count(), Is.EqualTo(1));
+        Assert.That(currencies4.First().ExchangeRates.Count, Is.EqualTo(3));
         
         await transaction.CommitAsync();
 
         await transaction.DisposeAsync();
-        await connection.DisposeAsync();
         await db.DisposeAsync();
 
     }

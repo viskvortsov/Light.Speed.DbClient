@@ -39,7 +39,17 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
         _parameters.Clear();
 
         StringBuilder sb = new StringBuilder();
-        sb.Append(MainRowSelectQuery());
+
+        if (_filters.HasConnectedTableFilters())
+        {
+            sb.Append(MainRowSelectFilterConnectedTableQuery());
+            sb.Append(MainRowSelectPrefilteredWithConnectedTableQuery());
+        }
+        else
+        {
+            sb.Append(MainRowSelectQuery()); 
+        }
+        
         return sb.ToString();
         
     }
@@ -47,6 +57,185 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
     public IQueryParameters Parameters()
     {
         return _parameters;
+    }
+    
+    private string MainRowSelectFilterConnectedTableQuery()
+    {
+        
+        StringBuilder sb = new StringBuilder();
+        
+        sb.Append($"WITH temp_table AS");
+        sb.Append($"(");
+        sb.Append($"SELECT");
+        sb.Append($" ");
+        
+        var columns = _reflection.MainTableReflection.PartsOfPrimaryKey().ToList();
+        // main fields
+        for (int i = 0; i < columns.Count; i++)
+        {
+            var column = columns[i];
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()} as {column.QueryName()}");
+            if (i < columns.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+        }
+        
+        // additional fields
+        var additionalFields = _reflection.MainTableReflection.AdditionalFields().ToList();
+        
+        if (additionalFields.Count > 0)
+            sb.Append(",");
+
+        int index0 = 0;
+        foreach (var additionalField in additionalFields)
+        {
+            ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
+            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
+            if (index0 < additionalFields.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+            index0++;
+        }
+        
+        // Main table
+        sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
+        
+        // Additional tables
+        var additionalTables = _reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
+        foreach (var column in additionalTables)
+        {
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}.{column.ForeignKeyColumn().QueryName()}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+        }
+
+        IFilters<E> filters = _filters.ConnectedTableFilters();
+        HashSet<ITableReflection> uniqueTables = new HashSet<ITableReflection>();
+        foreach (var filter in filters)
+        {
+            uniqueTables.Add(filter.Column().Table());
+        }
+
+        foreach (var table in uniqueTables)
+        {
+            
+            sb.Append(" ");
+            sb.Append("INNER JOIN");
+            sb.Append(" ");
+            sb.Append($"{table.QueryName()}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            
+            List<IColumnReflection> ownerKeys = table.PartsOfOwnerKey().ToList();
+            for (int i = 0; i < ownerKeys.Count; i++)
+            {
+                var keyPart = ownerKeys[i];
+                sb.Append($"{_reflection.MainTableReflection.QueryName()}.{keyPart.Relation()}");
+                sb.Append($" ");
+                sb.Append($"=");
+                sb.Append($" ");
+                sb.Append($"{table.QueryName()}.{keyPart.QueryName()}");
+                if (i < ownerKeys.Count - 1)
+                {
+                    sb.Append(" ");
+                    sb.Append("AND");
+                    sb.Append(" ");
+                }
+                sb.Append(" ");
+                sb.Append("AND");
+                sb.Append(" ");
+            }
+            
+            Filters<E> thisTableFilters = new Filters<E>();
+            foreach (var filter in _filters.ConnectedTableFilters())
+            {
+                if (filter.Column().Table() == table)
+                    thisTableFilters.Add(filter);
+            }
+            
+            int index10 = 0;
+            foreach (var filter in thisTableFilters)
+            {
+                var value = filter.Value();
+                var type = value.GetType();
+                string parameterName = _parameters.Add(type, value);
+                
+                sb.Append($"{filter.Column().Table().QueryName()}.{filter.Column().QueryName()}");
+                sb.Append(" ");
+                sb.Append($"{ComparisonOperatorConverter.Convert(filter.Operator())}");
+                sb.Append(" ");
+                sb.Append($"{parameterName}");
+                if (index10 < thisTableFilters.Count() - 1)
+                {
+                    sb.Append(" ");
+                    sb.Append("AND");
+                    sb.Append(" ");
+                }
+                sb.Append(" ");
+                index10++;
+            }
+            
+        }
+        
+        if (_filters.HasMainTableFilters())
+        {
+            sb.Append($" ");
+            sb.Append($"WHERE");
+            sb.Append($" ");
+            List<Filter<E>> mainTableFilters = _filters.MainTableFilters().ToList();
+            for (int i = 0; i < mainTableFilters.Count; i++)
+            {
+                var filter = mainTableFilters[i];
+                var value = filter.Value();
+                var type = value.GetType();
+                string parameterName = _parameters.Add(type, value);
+                sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
+                if (i < mainTableFilters.Count - 1)
+                {
+                    sb.Append(" ");
+                    sb.Append("AND");
+                    sb.Append(" ");
+                }
+                sb.Append(" ");
+            }
+        }
+        
+        sb.Append("GROUP BY");
+        sb.Append(" ");
+        // main fields
+        for (int i = 0; i < columns.Count; i++)
+        {
+            var column = columns[i];
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+            if (i < columns.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+        }
+        
+        if (_usePagination)
+        {
+            
+            int page = (int)(_page - 1)!;
+            
+            sb.Append(" ");
+            sb.Append($"OFFSET {page * _limit} ROWS FETCH NEXT {_limit} ROWS ONLY");
+            sb.Append(" ");
+
+        }
+        sb.Append($")");
+        sb.Append(" ");
+        return sb.ToString();
+        
     }
 
     private string MainRowSelectQuery()
@@ -138,6 +327,83 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
             sb.Append(" ");
 
         }
+        sb.Append(";");
+        return sb.ToString();
+        
+    }
+    
+    private string MainRowSelectPrefilteredWithConnectedTableQuery()
+    {
+        
+        StringBuilder sb = new StringBuilder();
+        sb.Append($"SELECT");
+        sb.Append($" ");
+        
+        var columns = _reflection.MainTableReflection.Columns().ToList();
+        // main fields
+        for (int i = 0; i < columns.Count; i++)
+        {
+            var column = columns[i];
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()} as {column.QueryName()}");
+            if (i < columns.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+        }
+        
+        // additional fields
+        var additionalFields = _reflection.MainTableReflection.AdditionalFields().ToList();
+        
+        if (additionalFields.Count > 0)
+            sb.Append(",");
+
+        int index0 = 0;
+        foreach (var additionalField in additionalFields)
+        {
+            ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
+            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
+            if (index0 < additionalFields.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+            index0++;
+        }
+        
+        // Main table
+        sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
+        sb.Append($" ");
+        sb.Append($"WHERE");
+        sb.Append($" ");
+        
+        sb.Append($"(");
+        var keyFields = _reflection.MainTableReflection.PartsOfPrimaryKey().ToList();
+        // main fields
+        for (int i = 0; i < keyFields.Count; i++)
+        {
+            var column = columns[i];
+            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+            if (i < keyFields.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+        }
+        sb.Append($")");
+        sb.Append($" ");
+        sb.Append($"IN");
+        sb.Append($" ");
+        
+        sb.Append($"(");
+        sb.Append($"SELECT");
+        sb.Append($" ");
+        // main fields
+        for (int i = 0; i < keyFields.Count; i++)
+        {
+            var column = columns[i];
+            sb.Append($"temp_table.{column.QueryName()}");
+            if (i < keyFields.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+        }
+        sb.Append($"FROM temp_table");
+        sb.Append($")");
+        
         sb.Append(";");
         return sb.ToString();
         

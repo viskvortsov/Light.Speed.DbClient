@@ -44,5 +44,15 @@ public class Filters<E> : IFilters<E> where E : IDatabaseElement
     {
         return GetEnumerator();
     }
+
+    public bool HasConnectedTableFilters()
+    {
+        return ConnectedTableFilters().Any();
+    }
+    
+    public bool HasMainTableFilters()
+    {
+        return MainTableFilters().Any();
+    }
     
 }

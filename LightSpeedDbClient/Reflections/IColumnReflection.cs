@@ -11,6 +11,7 @@ public interface IColumnReflection
     IQueryType QueryType();
     string Relation();
     PropertyInfo Property();
+    ITableReflection Table();
     bool IsPartOfPrimaryKey();
     bool IsPartOfOwnerKey();
     bool HasAdditionalFields();
