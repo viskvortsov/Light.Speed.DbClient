@@ -68,5 +68,10 @@ public class Filter<E> : IFilter<E> where E : IDatabaseElement
     {
         return _value;
     }
+
+    public bool IsTableFilter()
+    {
+        return _isTableFilter;
+    }
     
 }
