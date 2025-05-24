@@ -180,12 +180,49 @@ public class PostgresqlSelectListObjectsQuery: IQuery
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
-            sb.Append($"{column.QueryName()}");
+            sb.Append($"{tableName}.{column.QueryName()}");
             if (i < columns.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
         }
+        
+        // additional fields
+        var additionalFields = _reflection.MainTableReflection.AdditionalFields().ToList();
+        
+        if (additionalFields.Count > 0)
+            sb.Append(",");
+
+        int index0 = 0;
+        foreach (var additionalField in additionalFields)
+        {
+            ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
+            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
+            if (index0 < additionalFields.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+            index0++;
+        }
+        
         sb.Append($"FROM {tableName}");
+        
+        // Additional tables
+        var additionalTables = _reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
+        foreach (var column in additionalTables)
+        {
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{column.ForeignKeyTable().QueryName()}.{column.ForeignKeyColumn().QueryName()}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{tableName}.{column.QueryName()}");
+        }
+        
         sb.Append($";");
         
         return sb.ToString();

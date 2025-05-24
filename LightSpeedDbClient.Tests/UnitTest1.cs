@@ -194,7 +194,8 @@ public class Tests
         company.Id = Guid.NewGuid();
         company.CurrencyId = currency2.Id;
         await coManager.SaveAsync(company);
-        IEnumerable<Company> companies = await coManager.GetListAsync(1, 100);
+        IEnumerable<Company> companies1 = await coManager.GetListAsync(1, 100);
+        IEnumerable<Company> companies2 = await coManager.GetListObjectsAsync(1, 100);
         
         Currency currency3 = await manager.GetByKeyAsync(new GuidKey<Currency>(currency2.Id));
         
