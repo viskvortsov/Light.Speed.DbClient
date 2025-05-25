@@ -1,15 +1,8 @@
 namespace LightSpeedDbClient.Attributes;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class ModelAttribute : Attribute
+public class ModelAttribute(string table, int id = 0) : Attribute
 {
-    public readonly string Table;
-    public readonly int Id;
-
-    public ModelAttribute(string table, int id = 0)
-    {
-        Table = table;
-        Id = id;
-    }
-    
+    public readonly string Table = table;
+    public readonly int Id = id;
 }
