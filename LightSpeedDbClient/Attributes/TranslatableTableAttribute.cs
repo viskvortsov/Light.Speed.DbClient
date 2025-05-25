@@ -1,15 +1,13 @@
 namespace LightSpeedDbClient.Attributes;
 
 [AttributeUsage(AttributeTargets.Class)]
-public class ModelAttribute : Attribute
+public class TranslatableTableAttribute : Attribute
 {
     public readonly string Table;
-    public readonly int Id;
-
-    public ModelAttribute(string table, int id = 0)
+    
+    public TranslatableTableAttribute(string table)
     {
         Table = table;
-        Id = id;
     }
     
 }

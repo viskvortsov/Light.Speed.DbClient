@@ -26,5 +26,12 @@ public class Company : DatabaseObject
     public Company(ModelType modelType) : base(modelType)
     {
     }
-    
+
+    public override void BeforeSave()
+    {
+    }
+
+    public override void AfterSave()
+    {
+    }
 }

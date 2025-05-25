@@ -63,4 +63,6 @@ public abstract class DatabaseObject : IDatabaseObject
     {
         return _modelType == Models.ModelType.Row;
     }
+    public abstract void BeforeSave();
+    public abstract void AfterSave();
 }

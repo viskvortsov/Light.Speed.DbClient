@@ -6,10 +6,15 @@ public interface IManager<E> : IDisposable, IAsyncDisposable where E : IDatabase
 {
     
     // TODO add localization
+    
     // TODO Change all owner keys with primary keys before save
     // TODO go through all todos
     // TODO exceptions
     // TODO debug logging and requests logging
+    // TODO static analisys and optimization
+    
+    // TODO add RecordSets
+    // TODO add BeforeSave and AfterSave
 
     E CreateObject();
     E CreateReference();

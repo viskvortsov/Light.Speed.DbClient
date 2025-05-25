@@ -1,0 +1,17 @@
+using LightSpeedDbClient.Attributes;
+using LightSpeedDbClient.Models;
+
+namespace ExampleModels.Currencies;
+
+[Model(table: "attributes")]
+public class Attribute
+{
+    [PrimaryKey]
+    [Column]
+    public Guid Id { get; set; }
+    
+    [Column(name: "name")]
+    [TranslatableColumn]
+    public ITranslatable Name { get; set; }
+    
+}
