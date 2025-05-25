@@ -8,14 +8,14 @@ namespace LightSpeedDbClient.Reflections;
 public class ConnectedTables : IConnectedTables
 {
     
-    Dictionary<string, ConnectedTable> _tables;
+    private readonly Dictionary<string, ConnectedTable> _tables;
 
     public ConnectedTables(Type type)
     {
         
         ModelAttribute? model = type.GetCustomAttribute<ModelAttribute>();
         if (model == null)
-            throw new ClassIsNotAModelException();
+            throw new ClassIsNotAModelException($"Model not found for type {type.Name}");
 
         _tables = new Dictionary<string, ConnectedTable>();
         
@@ -28,7 +28,7 @@ public class ConnectedTables : IConnectedTables
                 ConnectedTable connectedTable = new ConnectedTable(property);
                 if (_tables.ContainsKey(connectedTable.Name()))
                 {
-                    throw new ReflectionException();
+                    throw new ReflectionException($"Connected table {connectedTable.Name()} already exists");
                 }
                 _tables.Add(connectedTable.Name(), connectedTable);
             }

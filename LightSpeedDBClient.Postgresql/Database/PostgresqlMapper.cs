@@ -4,36 +4,26 @@ using Npgsql;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlMapper : IMapper
+public class PostgresqlMapper(ITableReflection reflection, NpgsqlDataReader reader) : IMapper
 {
-    
-    private readonly ITableReflection _tableReflection;
-    private readonly NpgsqlDataReader _reader;
-
-    public PostgresqlMapper(ITableReflection reflection, NpgsqlDataReader reader)
-    {
-        _tableReflection = reflection;
-        _reader = reader;
-    }
-
     public IDatabaseObject MapToModel(IDatabaseObject element)
     {
         
         int i = 0;
-        foreach (IColumnReflection column in _tableReflection.Columns())
+        foreach (IColumnReflection column in reflection.Columns())
         {
-            var value = MapToValue(_reader, i, column.Type());
+            var value = MapToValue(i, column.Type());
             var property = column.Property();
             property.SetValue(element, value);
             i += 1;
         }
 
         // additional fields
-        var additionalFields = _tableReflection.AdditionalFields().ToList();
+        var additionalFields = reflection.AdditionalFields().ToList();
         
         foreach (var column in additionalFields)
         {
-            var value = MapToValue(_reader, i, column.Type());
+            var value = MapToValue(i, column.Type());
             var property = column.Property();
             property.SetValue(element, value);
             i += 1;
@@ -48,9 +38,9 @@ public class PostgresqlMapper : IMapper
     {
         
         int i = 0;
-        foreach (IColumnReflection column in _tableReflection.Columns())
+        foreach (IColumnReflection column in reflection.Columns())
         {
-            var value = MapToValue(_reader, i, column.Type());
+            var value = MapToValue(i, column.Type());
             var property = column.Property();
             property.SetValue(element, value);
             i += 1;
@@ -60,7 +50,7 @@ public class PostgresqlMapper : IMapper
 
     }
 
-    private object MapToValue(NpgsqlDataReader reader, int index, Type type)
+    private object MapToValue(int index, Type type)
     {
         if (PostgresqlDefaultSettings.TypeReaders.TryGetValue(type, out var func))
         {

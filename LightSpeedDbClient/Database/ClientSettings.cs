@@ -28,7 +28,7 @@ public static class ClientSettings
 
             ConstructorInfo? constructor = type.GetConstructor([typeof(ModelType)]);
             if (constructor == null)
-                throw new ReflectionException(); // TODO
+                throw new ReflectionException($"Constructor not found for type {type.Name}");
             
             Constructors.Add(type, info = constructor);
 
@@ -76,7 +76,7 @@ public static class ClientSettings
             return reflection;
         }
 
-        throw new ReflectionException(); // TODO
+        throw new ReflectionException($"Connected table not found for type {type.Name}");
 
     }
 
@@ -90,7 +90,7 @@ public static class ClientSettings
         _queryTypes.TryGetValue(type, out var value);
         if (value == null)
         {
-            throw new ReflectionException(); // TODO
+            throw new ReflectionException($"Query type not found for type {type.Name}");
         }
         return value;
     }

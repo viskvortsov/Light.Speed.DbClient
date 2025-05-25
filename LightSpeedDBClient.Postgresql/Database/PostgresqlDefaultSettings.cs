@@ -5,7 +5,7 @@ using NpgsqlTypes;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlDefaultSettings
+public static class PostgresqlDefaultSettings
 {
     
     internal static readonly Dictionary<Type, Func<NpgsqlDataReader, int, object>> TypeReaders = new()

@@ -2,7 +2,7 @@ using LightSpeedDbClient.Database;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class ComparisonOperatorConverter
+public static class ComparisonOperatorConverter
 {
 
     public static string Convert(ComparisonOperator comparisonOperator)

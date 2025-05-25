@@ -3,26 +3,25 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDbClient.Implementations;
 
-public class KeyElement : IKeyElement
+public class KeyElement(IColumnReflection column, object? value) : IKeyElement
 {
 
-    private readonly IColumnReflection _column;
-    private readonly object _value;
-
-    public KeyElement(IColumnReflection column, object value)
-    {
-        _column = column;
-        _value = value;
-    }
+    private readonly IColumnReflection _column = column;
+    private readonly object? _value = value;
 
     public IColumnReflection Column()
     {
         return _column;
     }
 
-    public object Value()
+    public object? Value()
     {
         return _value;
+    }
+
+    public Type Type()
+    {
+        return _column.Type();
     }
 
     public override bool Equals(object? obj)
@@ -38,10 +37,7 @@ public class KeyElement : IKeyElement
         if (ReferenceEquals(this, other)) return true;
         
         // Compare column names
-        bool columnNamesEqual = 
-            (_column == null && other._column == null) ||
-            (_column != null && other._column != null && 
-             _column.Name().Equals(other._column.Name()));
+        bool columnNamesEqual = (_column.Name().Equals(other._column.Name()));
         
         if (!columnNamesEqual) return false;
         
@@ -52,14 +48,10 @@ public class KeyElement : IKeyElement
     
     public override int GetHashCode()
     {
-        unchecked // Overflow is fine, just wrap
+        unchecked
         {
-            int hash = 17; // Prime number to start with
-        
-            // Include the column's hash code if it's not null
-            hash = hash * 31 + (_column != null ? _column.Name().GetHashCode() : 0);
-        
-            // Include the value's hash code if it's not null
+            int hash = 17;
+            hash = hash * 31 + _column.Name().GetHashCode();
             hash = hash * 31 + (_value != null ? _value.GetHashCode() : 0);
         
             return hash;

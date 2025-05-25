@@ -16,7 +16,7 @@ public abstract class DatabaseObject : IDatabaseObject
         _reflection = ClientSettings.GetReflection(GetType());
         _modelType = modelType;
         if (_modelType == Models.ModelType.Row)
-            throw new ReflectionException(); // TODO
+            throw new ReflectionException($"Wrong model type used {_modelType}");
     }
 
     public IKey Key()
@@ -25,21 +25,32 @@ public abstract class DatabaseObject : IDatabaseObject
         List<KeyElement> keyElements = new List<KeyElement>();
         foreach (IColumnReflection primaryKeyElement in partsOfPrimaryKey)
         {
-            keyElements.Add(new KeyElement(primaryKeyElement, primaryKeyElement.Property().GetValue(this)));
+            PropertyInfo property = primaryKeyElement.Property();
+            if (property == null)
+                throw new ReflectionException($"Property not found for column {primaryKeyElement.Name()}");
+            object? value = property.GetValue(this);
+            keyElements.Add(new KeyElement(primaryKeyElement, value));
         }
         return new Key(keyElements);
     }
 
     public IDatabaseObjectTable Table(string name)
     {
-        // TODO exception
+        IDatabaseObjectTable table;
         IColumnReflection columnReflection = _reflection.MainTableReflection.GetTableReflection(name);
-        IDatabaseObjectTable table = (IDatabaseObjectTable) columnReflection.Property().GetValue(this);
-        if (table == null)
+        object? value = columnReflection.Property().GetValue(this);
+        if (value == null)
         {
             ConstructorInfo? constructor = ClientSettings.GetConstructor(columnReflection.Type());
-            table = (IDatabaseObjectTable) constructor.Invoke(new object[] { Models.ModelType.Row });
+            if (constructor == null)
+                throw new ReflectionException($"Constructor not found for type {columnReflection.Type()}");
+        
+            table = (IDatabaseObjectTable) constructor.Invoke([Models.ModelType.Row]);
             columnReflection.Property().SetValue(this, table);
+        }
+        else
+        {
+            table = (IDatabaseObjectTable)value;
         }
         return table;
     }

@@ -1,5 +1,4 @@
 using LightSpeedDbClient.Database;
-using LightSpeedDbClient.Models;
 using Npgsql;
 
 namespace LightSpeedDBClient.Postgresql.Database;

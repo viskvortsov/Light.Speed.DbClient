@@ -2,18 +2,11 @@ using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Implementations;
 
-public class QueryType : IQueryType
+public class QueryType(string type) : IQueryType
 {
-    private readonly string _queryType;
-
-    public QueryType(string type)
-    {
-        _queryType = type;
-    }
-
     public string Type()
     {
-        return _queryType;
+        return type;
     }
     
 }

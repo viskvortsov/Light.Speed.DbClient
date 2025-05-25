@@ -3,19 +3,19 @@ using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Database;
 
-public class Filters<E> : IFilters<E> where E : IDatabaseElement
+public class Filters<T> : IFilters<T> where T : IDatabaseElement
 {
     
-    private readonly IList<Filter<E>> _filters = new List<Filter<E>>();
+    private readonly IList<Filter<T>> _filters = new List<Filter<T>>();
     
-    public void Add(Filter<E> filter)
+    public void Add(Filter<T> filter)
     {
         _filters.Add(filter);
     }
 
-    public IFilters<E> ConnectedTableFilters()
+    public IFilters<T> ConnectedTableFilters()
     {
-        Filters<E> filters = new();
+        Filters<T> filters = new();
         foreach (var filter in _filters)
         {
             if (filter.IsTableFilter())
@@ -24,9 +24,9 @@ public class Filters<E> : IFilters<E> where E : IDatabaseElement
         return filters;
     }
 
-    public IFilters<E> MainTableFilters()
+    public IFilters<T> MainTableFilters()
     {
-        Filters<E> filters = new();
+        Filters<T> filters = new();
         foreach (var filter in _filters)
         {
             if (!filter.IsTableFilter())
@@ -35,7 +35,7 @@ public class Filters<E> : IFilters<E> where E : IDatabaseElement
         return filters;
     }
 
-    public IEnumerator<Filter<E>> GetEnumerator()
+    public IEnumerator<Filter<T>> GetEnumerator()
     {
         return _filters.GetEnumerator();
     }

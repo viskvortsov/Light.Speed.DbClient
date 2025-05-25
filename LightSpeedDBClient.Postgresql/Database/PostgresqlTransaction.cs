@@ -3,23 +3,18 @@ using Npgsql;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlTransaction : ITransaction
+public class PostgresqlTransaction(NpgsqlTransaction innerTransaction) : ITransaction
 {
-    protected internal NpgsqlTransaction InnerTransaction;
+    protected internal readonly NpgsqlTransaction InnerTransaction = innerTransaction;
 
-    public PostgresqlTransaction(NpgsqlTransaction innerTransaction)
-    {
-        InnerTransaction = innerTransaction;
-    }
-    
     public async Task CommitAsync()
     {
         await InnerTransaction.CommitAsync();
     }
 
-    public Task RollbackAsync()
+    public async Task RollbackAsync()
     {
-        throw new NotImplementedException();
+        await InnerTransaction.RollbackAsync();
     }
 
     public void Dispose()

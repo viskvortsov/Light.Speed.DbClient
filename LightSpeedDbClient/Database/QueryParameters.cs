@@ -13,21 +13,20 @@ public class QueryParameters : IQueryParameters
         return _parameters.GetEnumerator();
     }
 
-    public string Add(Type type, object value)
+    public string Add(Type type, object? value)
     {
         string finalName;
         int index = _parameters.Count;
-        if (value is IList)
+        if (value is IList values)
         {
             StringBuilder sb = new StringBuilder();
             sb.Append("(");
-            IList values = (IList) value;
             int i = 0;
             foreach (var innerValue in values)
             {
                 string parameterName = $"@{index}";
                 sb.Append(parameterName);
-                _parameters.Add(new QueryParameter(parameterName, innerValue.GetType(), innerValue));
+                _parameters.Add(new QueryParameter(parameterName, type, innerValue));
                 index++;
                 if (i < values.Count - 1)
                     sb.Append(",");

@@ -4,22 +4,24 @@ namespace LightSpeedDbClient.Implementations;
 
 public class Key : IKey
 {
-    internal SortedList<string, KeyElement> _keyElements;
-    
-    public Key()
+    internal SortedList<string, KeyElement> InternalKeyElements;
+
+    protected Key()
     {
+        InternalKeyElements = new ();
     }
+    
     public Key(List<KeyElement> elements)
     {
-        _keyElements = new ();
+        InternalKeyElements = new ();
         foreach (var keyElement in elements)
         {
-            _keyElements.Add(keyElement.Column().Name(), keyElement);
+            InternalKeyElements.Add(keyElement.Column().Name(), keyElement);
         }
     }
     public IEnumerable<IKeyElement> KeyElements()
     {
-        return _keyElements.Values.ToList();
+        return InternalKeyElements.Values.ToList();
     }
 
     public override bool Equals(object? obj)
@@ -30,27 +32,20 @@ public class Key : IKey
         if (obj.GetType() != this.GetType()) return false;
     
         var other = (Key)obj;
-    
-        // Handle null lists
-        if (_keyElements == null && other._keyElements == null)
-            return true;
-    
-        if (_keyElements == null || other._keyElements == null)
-            return false;
-    
+        
         // Check if lists have the same number of elements
-        if (_keyElements.Count != other._keyElements.Count)
+        if (InternalKeyElements.Count != other.InternalKeyElements.Count)
             return false;
     
         // Compare all key-value pairs
-        foreach (var key in _keyElements.Keys)
+        foreach (var key in InternalKeyElements.Keys)
         {
             // Check if the key exists in the other collection
-            if (!other._keyElements.ContainsKey(key))
+            if (!other.InternalKeyElements.ContainsKey(key))
                 return false;
         
             // Check if the values are equal
-            if (!Equals(_keyElements[key], other._keyElements[key]))
+            if (!Equals(InternalKeyElements[key], other.InternalKeyElements[key]))
                 return false;
         }
     
@@ -60,16 +55,13 @@ public class Key : IKey
     public override int GetHashCode()
     {
         
-        if (_keyElements == null)
-            return 0;
-    
-        unchecked // Overflow is fine, just wrap
+        unchecked
         {
-            int hash = 17; // Prime number to start with
+            int hash = 17;
         
-            foreach (var element in _keyElements.Values)
+            foreach (var element in InternalKeyElements.Values)
             {
-                hash = hash * 31 + (element != null ? element.GetHashCode() : 0);
+                hash = hash * 31 + element.GetHashCode();
             }
         
             return hash;

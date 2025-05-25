@@ -8,14 +8,15 @@ public class DatabaseObjectTableElement : IDatabaseObjectTableElement
 {
     
     private readonly ITableReflection _reflection;
-    
-    public DatabaseObjectTableElement()
+
+    protected DatabaseObjectTableElement()
     {
         _reflection = ClientSettings.GetConnectedTableReflection(GetType());
     }
-    
-    public DatabaseObjectTableElement(ModelType modelType) : this()
+
+    protected DatabaseObjectTableElement(ModelType modelType) : this()
     {
+        _ = modelType;
     }
 
     public IKey Key()

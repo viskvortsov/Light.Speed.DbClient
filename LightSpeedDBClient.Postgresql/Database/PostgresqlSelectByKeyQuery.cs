@@ -1,23 +1,14 @@
 using System.Text;
 using LightSpeedDbClient.Database;
+using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSelectByKeyQuery: IQuery
+public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKey key) : IQuery
 {
-    
-    private readonly DatabaseObjectReflection _reflection;
-    private readonly QueryParameters _parameters;
-    private readonly IKey _key;
-    
-    public PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKey key)
-    {
-        _reflection = reflection;
-        _key = key;
-        _parameters = new ();
-    }
+    private readonly QueryParameters _parameters = new ();
 
     public string GetQueryText()
     {
@@ -26,7 +17,7 @@ public class PostgresqlSelectByKeyQuery: IQuery
         sb.Append(MainRowSelectQuery());
         sb.Append(" ");
         
-        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
+        List<IConnectedTable> connectedTables = reflection.ConnectedTables().ToList();
         foreach (var connectedTable in connectedTables)
         {
             sb.Append(ConnectedTableSelectQuery(connectedTable));
@@ -46,18 +37,18 @@ public class PostgresqlSelectByKeyQuery: IQuery
         StringBuilder sb = new StringBuilder();
         sb.Append($"SELECT");
         sb.Append($" ");
-        var columns = _reflection.MainTableReflection.Columns().ToList();
+        var columns = reflection.MainTableReflection.Columns().ToList();
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
-            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()} as {column.QueryName()}");
+            sb.Append($"{reflection.MainTableReflection.QueryName()}.{column.QueryName()} as {column.QueryName()}");
             if (i < columns.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
         }
         
         // additional fields
-        var additionalFields = _reflection.MainTableReflection.AdditionalFields().ToList();
+        var additionalFields = reflection.MainTableReflection.AdditionalFields().ToList();
         
         if (additionalFields.Count > 0)
             sb.Append(",");
@@ -65,7 +56,9 @@ public class PostgresqlSelectByKeyQuery: IQuery
         int index0 = 0;
         foreach (var additionalField in additionalFields)
         {
-            ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
+            ITableReflection? foreignKeyTable = additionalField.ForeignKeyTable();
+            if (foreignKeyTable == null)
+                throw new ReflectionException($"Foreign key table not found for {additionalField.Name()}");
             sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
             if (index0 < additionalFields.Count - 1)
                 sb.Append(", ");
@@ -74,37 +67,45 @@ public class PostgresqlSelectByKeyQuery: IQuery
         }
         
         // Main table
-        sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
+        sb.Append($"FROM {reflection.MainTableReflection.QueryName()} as {reflection.MainTableReflection.QueryName()}");
         
         // Additional tables
-        var additionalTables = _reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
+        var additionalTables = reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
         foreach (var column in additionalTables)
         {
+            ITableReflection? tableReflection = column.ForeignKeyTable();
+            if (tableReflection == null)
+                throw new ReflectionException($"Foreign key table not found for {column.ForeignKeyName()}");
+            
+            IColumnReflection? columnReflection = column.ForeignKeyColumn();
+            if (columnReflection == null)
+                throw new ReflectionException($"Foreign key column not found for {column.ForeignKeyName()}");
+            
             sb.Append(" ");
             sb.Append("LEFT JOIN");
             sb.Append(" ");
-            sb.Append($"{column.ForeignKeyTable().QueryName()}");
+            sb.Append($"{tableReflection.QueryName()}");
             sb.Append(" ");
             sb.Append("ON");
             sb.Append(" ");
-            sb.Append($"{column.ForeignKeyTable().QueryName()}.{column.ForeignKeyColumn().QueryName()}");
+            sb.Append($"{tableReflection.QueryName()}.{columnReflection.QueryName()}");
             sb.Append(" ");
             sb.Append("=");
             sb.Append(" ");
-            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+            sb.Append($"{reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
         }
         
         sb.Append($" ");
         sb.Append($"WHERE");
         sb.Append($" ");
-        List<IKeyElement> keyElements = _key.KeyElements().ToList();
+        List<IKeyElement> keyElements = key.KeyElements().ToList();
         for (int i = 0; i < keyElements.Count; i++)
         {
             var keyPart = keyElements[i];
-            var value = keyPart.Value();
-            var type = value.GetType();
+            object? value = keyPart.Value();
+            Type type = keyPart.Type();
             string parameterName = _parameters.Add(type, value);
-            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{keyPart.Column().QueryName()} = {parameterName}");
+            sb.Append($"{reflection.MainTableReflection.QueryName()}.{keyPart.Column().QueryName()} = {parameterName}");
             if (i < keyElements.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
@@ -131,12 +132,15 @@ public class PostgresqlSelectByKeyQuery: IQuery
         }
         
         // additional fields
-        var columnsWithForeignKey = _reflection.MainTableReflection.ColumnsWithForeignKey();
+        var columnsWithForeignKey = reflection.MainTableReflection.ColumnsWithForeignKey();
         Dictionary<IColumnReflection, IColumnReflection> allAdditionalFields = new ();
         var withForeignKey = columnsWithForeignKey.ToList();
         foreach (var column in withForeignKey)
         {
-            foreach (IColumnReflection additionalField in _reflection.MainTableReflection.ColumnsWithAdditionalInfo(column.ForeignKeyName()))
+            string? foreignKeyName = column.ForeignKeyName();
+            if (foreignKeyName == null)
+                throw new ReflectionException($"Foreign key name not found for {column.Name()}");
+            foreach (IColumnReflection additionalField in reflection.MainTableReflection.ColumnsWithAdditionalInfo(foreignKeyName))
             {
                 allAdditionalFields.Add(additionalField, column);
             }
@@ -150,7 +154,9 @@ public class PostgresqlSelectByKeyQuery: IQuery
         {
             IColumnReflection additionalField = keyValue.Key;
             IColumnReflection column = keyValue.Value;
-            ITableReflection foreignKeyTable = column.ForeignKeyTable();
+            ITableReflection? foreignKeyTable = column.ForeignKeyTable();
+            if (foreignKeyTable == null)
+                throw new ReflectionException($"Foreign key table not found for {additionalField.Name()}");
             sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
             if (index0 < allAdditionalFields.Count - 1)
                 sb.Append(", ");
@@ -164,18 +170,25 @@ public class PostgresqlSelectByKeyQuery: IQuery
         // Additional tables
         foreach (var column in withForeignKey)
         {
+            ITableReflection? foreignKeyTable = column.ForeignKeyTable();
+            if (foreignKeyTable == null)
+                throw new ReflectionException($"Foreign key table not found for {column.ForeignKeyName()}");
+            IColumnReflection? foreignKeyColumn = column.ForeignKeyColumn();
+            if (foreignKeyColumn == null)
+                throw new ReflectionException($"Foreign key column not found for {column.ForeignKeyName()}");
+            
             sb.Append(" ");
             sb.Append("LEFT JOIN");
             sb.Append(" ");
-            sb.Append($"{column.ForeignKeyTable().QueryName()}");
+            sb.Append($"{foreignKeyTable.QueryName()}");
             sb.Append(" ");
             sb.Append("ON");
             sb.Append(" ");
-            sb.Append($"{column.ForeignKeyTable().QueryName()}.{column.ForeignKeyColumn().QueryName()}");
+            sb.Append($"{foreignKeyTable.QueryName()}.{foreignKeyColumn.QueryName()}");
             sb.Append(" ");
             sb.Append("=");
             sb.Append(" ");
-            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+            sb.Append($"{reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
         }
         
         sb.Append($" ");
@@ -186,9 +199,9 @@ public class PostgresqlSelectByKeyQuery: IQuery
         for (int i = 0; i < ownerKeys.Count; i++)
         {
             var keyPart = ownerKeys[i];
-            IKeyElement partOfKey = _key.KeyElements().First(element => element.Column().Name() == keyPart.Relation());
+            IKeyElement partOfKey = key.KeyElements().First(element => element.Column().Name() == keyPart.Relation());
             var value = partOfKey.Value();
-            var type = value.GetType();
+            var type = partOfKey.Type();
             string parameterName =_parameters.Add(type, value);
             sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {parameterName}");
             if (i < ownerKeys.Count - 1)

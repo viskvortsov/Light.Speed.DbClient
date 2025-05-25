@@ -14,29 +14,24 @@ public class TableReflection : ITableReflection
     private readonly List<IColumnReflection> _columns;
     private readonly List<IColumnReflection> _additionalFields = new();
     private readonly List<IColumnReflection> _connectedTables;
-    private readonly Dictionary<string, IColumnReflection> _partsOfPrimaryKey;
-    private readonly Dictionary<string, IColumnReflection> _partsOfOwnerKey;
+
     
     public TableReflection(Type type)
     {
         
         _columns = new List<IColumnReflection>();
         _connectedTables = new List<IColumnReflection>();
-        _partsOfPrimaryKey = new Dictionary<string, IColumnReflection>();
-        _partsOfOwnerKey = new Dictionary<string, IColumnReflection>();
         _type = type;
         _name = type.Name.ToLower();
         
         ModelAttribute? model = _type.GetCustomAttribute<ModelAttribute>();
         if (model == null)
-            throw new ClassIsNotAModelException();
+            throw new ClassIsNotAModelException($"Model not found for {_type.Name}");
 
         _queryName = model.Table;
 
         FillColumns();
         FillTables();
-        FillPrimaryKeys();
-        FillOwnerKeys();
         FillAdditionalFields();
 
     }
@@ -53,7 +48,7 @@ public class TableReflection : ITableReflection
                 ColumnReflection columnReflection = new(property, this);
                 if (_columns.Contains(columnReflection))
                 {
-                    throw new ReflectionException();
+                    throw new ReflectionException($"Model {_type.Name} has multiple columns with the same name {columnReflection.Name()}");
                 }
                 _columns.Add(columnReflection);
             }
@@ -73,7 +68,7 @@ public class TableReflection : ITableReflection
                 ColumnReflection columnReflection = new(property, this);
                 if (_additionalFields.Contains(columnReflection))
                 {
-                    throw new ReflectionException();
+                    throw new ReflectionException($"Model {_type.Name} has multiple columns with the same name {columnReflection.Name()}");
                 }
                 _additionalFields.Add(columnReflection);
             }
@@ -93,32 +88,10 @@ public class TableReflection : ITableReflection
                 ColumnReflection columnReflection = new(property, this);
                 if (_connectedTables.Contains(columnReflection))
                 {
-                    throw new ReflectionException();
+                    throw new ReflectionException($"Model {_type.Name} has multiple tables with the same name {columnReflection.Name()}");
                 }
                 _connectedTables.Add(columnReflection);
             }
-        }
-        
-    }
-    
-    private void FillPrimaryKeys()
-    {
-        
-        foreach (var column in _columns)
-        { 
-            if (column.IsPartOfPrimaryKey())
-                _partsOfPrimaryKey.Add(column.Name(), column);
-        }
-        
-    }
-    
-    private void FillOwnerKeys()
-    {
-        
-        foreach (var column in _columns)
-        { 
-            if (column.IsPartOfOwnerKey())
-                _partsOfOwnerKey.Add(column.Name(), column);
         }
         
     }
@@ -175,12 +148,12 @@ public class TableReflection : ITableReflection
 
     public IColumnReflection GetColumnReflection(string name)
     {
-        return _columns.SingleOrDefault(x => x.Name() == name.ToLower());
+        return _columns.Single(x => x.Name() == name.ToLower());
     }
 
     public IColumnReflection GetTableReflection(string name)
     {
-        return _connectedTables.SingleOrDefault(x => x.Name() == name.ToLower());
+        return _connectedTables.Single(x => x.Name() == name.ToLower());
     }
 
     public IEnumerable<IColumnReflection> ColumnsWithForeignKey()
@@ -194,7 +167,7 @@ public class TableReflection : ITableReflection
         return columns;
     }
 
-    public IEnumerable<IColumnReflection> ColumnsWithAdditionalInfo(string foreignKeyName)
+    public IEnumerable<IColumnReflection> ColumnsWithAdditionalInfo(string? foreignKeyName)
     {
         List<IColumnReflection> columns = new ();
         foreach (var column in _additionalFields)
@@ -235,7 +208,7 @@ public class TableReflection : ITableReflection
         }
         
         if (foreignKeyColumn == null)
-            throw new ReflectionException(); // TODO
+            throw new ReflectionException($"Foreign key {name} not found for {_type.Name}");
 
         return foreignKeyColumn;
 

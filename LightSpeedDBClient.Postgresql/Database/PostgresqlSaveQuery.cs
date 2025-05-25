@@ -1,21 +1,21 @@
 using System.Text;
 using LightSpeedDbClient.Database;
+using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseObject
+public class PostgresqlSaveQuery<T>: IQuery where T : IDatabaseObject
 {
     
     private readonly DatabaseObjectReflection _reflection;
     private readonly QueryParameters _parameters;
-    private readonly List<E> _elements;
-    private int _paramsCount;
+    private readonly List<T> _elements;
 
-    public PostgresqlSaveQuery(DatabaseObjectReflection reflection, E element) : this(reflection, new List<E> { element }) {}
-    
-    public PostgresqlSaveQuery(DatabaseObjectReflection reflection, IEnumerable<E> elements)
+    public PostgresqlSaveQuery(DatabaseObjectReflection reflection, T element) : this(reflection, new List<T> { element }) {}
+
+    private PostgresqlSaveQuery(DatabaseObjectReflection reflection, IEnumerable<T> elements)
     {
         _reflection = reflection;
         _elements = elements.ToList();
@@ -25,7 +25,6 @@ public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseObject
     public string GetQueryText()
     {
         _parameters.Clear();
-        _paramsCount = 0;
         
         StringBuilder sb = new StringBuilder();
         sb.Append(MainRowInsertQuery());
@@ -164,7 +163,12 @@ public class PostgresqlSaveQuery<E>: IQuery where E : IDatabaseObject
             sb.Append($"(");
             foreach (IColumnReflection keyPart in partsOfOwnerKey)
             {
-                IColumnReflection ownerColumn = _reflection.MainTableReflection.GetColumnReflection(keyPart.Relation());
+                string? relation = keyPart.Relation();
+                if (relation == null)
+                    throw new ModelSetupException($"Relation is not found for {keyPart.Name()}");
+                IColumnReflection? ownerColumn = _reflection.MainTableReflection.GetColumnReflection(relation);
+                if (ownerColumn == null)
+                    throw new ModelSetupException($"Owner column {relation} is not found for {keyPart.Name()}");
                 var value = ownerColumn.Property().GetValue(element);
                 string parameterName = _parameters.Add(ownerColumn.Type(), value);
                 sb.Append($"{parameterName}");

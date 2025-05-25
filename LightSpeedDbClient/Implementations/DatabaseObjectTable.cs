@@ -1,19 +1,18 @@
 using System.Collections;
-using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Implementations;
 
-public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseObjectTableElement
+public class DatabaseObjectTable<T> : IDatabaseObjectTable where T : IDatabaseObjectTableElement
 {
     
-    private readonly List<E> _elements = new List<E>();
+    private readonly List<T> _elements = new List<T>();
 
     public DatabaseObjectTable(List<IDatabaseObjectTableElement> elements)
     {
         foreach (var element in elements)
         {
-            _elements.Add((E) element);
+            _elements.Add((T) element);
         }
     }
     
@@ -21,11 +20,13 @@ public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseOb
     {
     }
     
+#pragma warning disable CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     public DatabaseObjectTable(ModelType modelType)
+#pragma warning restore CS8618 // Non-nullable field must contain a non-null value when exiting constructor. Consider adding the 'required' modifier or declaring as nullable.
     {
     }
 
-    public IEnumerator<E> GetEnumerator()
+    public IEnumerator<T> GetEnumerator()
     {
         return _elements.GetEnumerator();
     }
@@ -35,27 +36,27 @@ public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseOb
         return GetEnumerator();
     }
 
-    public void Add(E item)
+    public void Add(T item)
     {
         _elements.Add(item);
     }
-    
+
     public int Add(object? value)
     {
-        if (value is E row)
+        if (value is T)
         {
-            Add(row);
+            Add((T) value);
         }
         else
         {
-            throw new ReflectionException();
+            throw new ArgumentException("Value is not of type T");
         }
         return _elements.Count;
     }
 
     public void Clear()
     {
-        _elements.Clear();
+        throw new NotImplementedException();
     }
 
     public bool Contains(object? value)
@@ -84,21 +85,6 @@ public class DatabaseObjectTable<E> : IDatabaseObjectTable where E : IDatabaseOb
     }
 
     public bool IsFixedSize { get; }
-
-    public bool Contains(E item)
-    {
-        return _elements.Contains(item);
-    }
-
-    public void CopyTo(E[] array, int arrayIndex)
-    {
-        _elements.CopyTo(array, arrayIndex);
-    }
-
-    public bool Remove(E item)
-    {
-        return _elements.Remove(item);
-    }
 
     public void CopyTo(Array array, int index)
     {

@@ -2,19 +2,14 @@ using Npgsql;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlBatch: IDisposable, IAsyncDisposable
+public class PostgresqlBatch(PostgresqlConnection connection, PostgresqlTransaction? transaction = null)
+    : IDisposable, IAsyncDisposable
 {
-    private NpgsqlBatch _batch;
-    
-    public PostgresqlBatch(PostgresqlConnection connection, PostgresqlTransaction? transaction = null)
-    {
-        _batch = new NpgsqlBatch(connection.InnerConnection, transaction?.InnerTransaction);
-        
-    }
+    private readonly NpgsqlBatch _batch = new(connection.InnerConnection, transaction?.InnerTransaction);
 
     internal void AddCommand(PostgresqlBatchCommand command)
     {
-        _batch.BatchCommands.Add(command._innerCommand);
+        _batch.BatchCommands.Add(command.InnerCommand);
     }
 
     internal async Task<int> ExecuteNonQueryAsync()

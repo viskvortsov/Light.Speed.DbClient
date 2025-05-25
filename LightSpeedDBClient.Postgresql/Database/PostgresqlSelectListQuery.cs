@@ -6,7 +6,7 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
+public class PostgresqlSelectListQuery<T>: IQuery where T : IDatabaseElement
 {
     
     private readonly DatabaseObjectReflection _reflection;
@@ -14,16 +14,16 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
     private readonly int? _limit;
     private readonly bool _usePagination;
     private readonly QueryParameters _parameters;
-    private readonly IFilters<E> _filters;
+    private readonly IFilters<T> _filters;
     
-    public PostgresqlSelectListQuery(IFilters<E> filters, DatabaseObjectReflection reflection, int? page = null, int? limit = null)
+    public PostgresqlSelectListQuery(IFilters<T> filters, DatabaseObjectReflection reflection, int? page = null, int? limit = null)
     {
         _reflection = reflection;
         _page = page;
         _limit = limit;
 
-        if (_page == 0)
-            throw new PageValueException();
+        if (_page <= 0)
+            throw new PageValueException($"Page value should be more then 0.");
         
         if (page != null && limit == null)
             limit = 10; // TODO
@@ -118,7 +118,7 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
             sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
         }
 
-        IFilters<E> filters = _filters.ConnectedTableFilters();
+        IFilters<T> filters = _filters.ConnectedTableFilters();
         HashSet<ITableReflection> uniqueTables = new HashSet<ITableReflection>();
         foreach (var filter in filters)
         {
@@ -156,7 +156,7 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
                 sb.Append(" ");
             }
             
-            Filters<E> thisTableFilters = new Filters<E>();
+            Filters<T> thisTableFilters = new Filters<T>();
             foreach (var filter in _filters.ConnectedTableFilters())
             {
                 if (filter.Column().Table() == table)
@@ -167,7 +167,7 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
             foreach (var filter in thisTableFilters)
             {
                 var value = filter.Value();
-                var type = value.GetType();
+                var type = filter.Type();
                 string parameterName = _parameters.Add(type, value);
                 
                 sb.Append($"{filter.Column().Table().QueryName()}.{filter.Column().QueryName()}");
@@ -192,12 +192,12 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<E>> mainTableFilters = _filters.MainTableFilters().ToList();
+            List<Filter<T>> mainTableFilters = _filters.MainTableFilters().ToList();
             for (int i = 0; i < mainTableFilters.Count; i++)
             {
                 var filter = mainTableFilters[i];
                 var value = filter.Value();
-                var type = value.GetType();
+                var type = filter.Type();
                 string parameterName = _parameters.Add(type, value);
                 sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (i < mainTableFilters.Count - 1)
@@ -299,12 +299,12 @@ public class PostgresqlSelectListQuery<E>: IQuery where E : IDatabaseElement
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<E>> filters = _filters.ToList();
+            List<Filter<T>> filters = _filters.ToList();
             for (int i = 0; i < filters.Count; i++)
             {
                 var filter = filters[i];
                 var value = filter.Value();
-                var type = value.GetType();
+                var type = filter.Type();
                 string parameterName = _parameters.Add(type, value);
                 sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (i < filters.Count - 1)

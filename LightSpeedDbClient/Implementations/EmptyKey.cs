@@ -9,9 +9,9 @@ public class EmptyKey : IKey
         return new List<IKeyElement>();
     }
 
-    public object GetValue(string name)
+    public object? GetValue(string name)
     {
-        throw null;
+        return null;
     }
     
 }

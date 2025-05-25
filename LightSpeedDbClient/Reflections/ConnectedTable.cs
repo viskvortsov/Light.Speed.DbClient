@@ -1,5 +1,4 @@
 using System.Reflection;
-using LightSpeedDbClient.Attributes;
 
 namespace LightSpeedDbClient.Reflections;
 
@@ -14,8 +13,6 @@ public class ConnectedTable : IConnectedTable
 
     public ConnectedTable(PropertyInfo property)
     {
-        
-        TableAttribute? table = property.GetCustomAttribute<TableAttribute>();
         
         _name = property.Name.ToLower();
         _type = property.PropertyType;

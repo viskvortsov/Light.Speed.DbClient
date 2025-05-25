@@ -1,45 +1,31 @@
 using System.Text;
 using LightSpeedDbClient.Database;
-using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlDeleteListQuery<E>: IQuery where E : IDatabaseElement
+public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectReflection reflection) : IQuery
+    where T : IDatabaseElement
 {
-    
-    private readonly DatabaseObjectReflection _reflection;
-    private readonly QueryParameters _parameters;
-    private readonly IFilters<E> _filters;
-    
-    public PostgresqlDeleteListQuery(IFilters<E> filters, DatabaseObjectReflection reflection)
-    {
-        _reflection = reflection;
-        _filters = filters;
-        _parameters = new ();
-    }
+    private readonly QueryParameters _parameters = new ();
 
     public string GetQueryText()
     {
-        
         _parameters.Clear();
-        int i = 0;
 
         StringBuilder sb = new StringBuilder();
         
-        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
+        List<IConnectedTable> connectedTables = reflection.ConnectedTables().ToList();
         foreach (var connectedTable in connectedTables)
         {
             sb.Append(ConnectedTableDeleteQuery(connectedTable));
             sb.Append(" ");
         }
-        
         sb.Append(MainRowDeleteQuery());
         sb.Append($" ");
         
         return sb.ToString();
-        
     }
 
     public IQueryParameters Parameters()
@@ -55,22 +41,22 @@ public class PostgresqlDeleteListQuery<E>: IQuery where E : IDatabaseElement
         StringBuilder sb = new StringBuilder();
         sb.Append($"DELETE");
         sb.Append($" ");
-        sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
+        sb.Append($"FROM {reflection.MainTableReflection.QueryName()} as {reflection.MainTableReflection.QueryName()}");
 
-        if (_filters.HasMainTableFilters())
+        if (filters.HasMainTableFilters())
         {
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<E>> filters = _filters.MainTableFilters().ToList();
+            List<Filter<T>> filters1 = filters.MainTableFilters().ToList();
             int index1 = 0;
-            foreach (Filter<E> filter in filters)
+            foreach (Filter<T> filter in filters1)
             {
                 var value = filter.Value();
-                var type = value.GetType();
+                var type = filter.Type();
                 string parameterName = _parameters.Add(type, value);
-                sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} = {parameterName}");
-                if (index1 < filters.Count - 1)
+                sb.Append($"{reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} = {parameterName}");
+                if (index1 < filters1.Count - 1)
                     sb.Append(", ");
                 sb.Append(" ");
                 index1++;
@@ -94,7 +80,7 @@ public class PostgresqlDeleteListQuery<E>: IQuery where E : IDatabaseElement
         sb.Append($" ");
         sb.Append($"USING");
         sb.Append($" ");
-        sb.Append($"{_reflection.MainTableReflection.QueryName()}");
+        sb.Append($"{reflection.MainTableReflection.QueryName()}");
         sb.Append($" ");
         sb.Append($"WHERE");
         sb.Append($" ");
@@ -104,7 +90,7 @@ public class PostgresqlDeleteListQuery<E>: IQuery where E : IDatabaseElement
         int index2 = 0;
         foreach (var keyPart in ownerKeys)
         {
-            sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {_reflection.MainTableReflection.QueryName()}.{keyPart.Relation()}");
+            sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {reflection.MainTableReflection.QueryName()}.{keyPart.Relation()}");
             if (index2 < ownerKeys.Count - 1)
             {
                 sb.Append(" ");
@@ -115,17 +101,17 @@ public class PostgresqlDeleteListQuery<E>: IQuery where E : IDatabaseElement
             index2++;
         }
             
-        if (_filters.Any())
+        if (filters.Any())
         {
-            List<Filter<E>> filters = _filters.ToList();
+            List<Filter<T>> filters1 = filters.ToList();
             int index4 = 0;
-            foreach (Filter<E> filter in _filters)
+            foreach (Filter<T> filter in filters)
             {
                 var value = filter.Value();
-                var type = value.GetType();
+                var type = filter.Type();
                 string parameterName =_parameters.Add(type, value);
-                sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
-                if (index4 < filters.Count - 1)
+                sb.Append($"{reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
+                if (index4 < filters1.Count - 1)
                     sb.Append(", ");
                 sb.Append(" ");
             }

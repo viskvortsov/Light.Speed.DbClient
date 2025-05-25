@@ -5,5 +5,6 @@ namespace LightSpeedDbClient.Models;
 public interface IKeyElement
 {
     IColumnReflection Column();
-    object Value();
+    object? Value();
+    Type Type();
 }

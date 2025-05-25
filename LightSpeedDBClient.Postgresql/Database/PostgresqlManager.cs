@@ -9,7 +9,7 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
+public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 {
     
     public PostgresqlManager(IConnection connection) : base(connection){}
@@ -20,12 +20,12 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
 
     public PostgresqlManager(IConnection connection, ITransaction transaction) : base(connection, transaction){}
 
-    public override async Task<IEnumerable<E>> GetListAsync(IFilters<E> filters, int? page = null, int? limit = null)
+    public override async Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null)
     {
         
-        var elements = new List<E>();
+        var elements = new List<T>();
         
-        PostgresqlSelectListQuery<E> selectListQuery = new PostgresqlSelectListQuery<E>(filters, Reflection, page, limit);
+        PostgresqlSelectListQuery<T> selectListQuery = new PostgresqlSelectListQuery<T>(filters, Reflection, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -37,8 +37,8 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            E element = CreateReference();
-            element = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
+            T element = CreateReference();
+            element = (T) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
             elements.Add(element);
         }
 
@@ -46,16 +46,16 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         
     }
 
-    public override async Task<IEnumerable<E>> GetListAsync(int? page = null, int? limit = null)
+    public override async Task<IEnumerable<T>> GetListAsync(int? page = null, int? limit = null)
     {
-        return await GetListAsync(new Filters<E>(), page, limit);
+        return await GetListAsync(new Filters<T>(), page, limit);
     }
 
-    public override async Task<IEnumerable<E>> GetListObjectsAsync(IFilters<E> filters, int? page = null, int? limit = null)
+    public override async Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null)
     {
-        Dictionary<IKey, E> elements = new ();
+        Dictionary<IKey, T> elements = new ();
         
-        PostgresqlSelectListObjectsQuery<E> selectListQuery = new PostgresqlSelectListObjectsQuery<E>(filters, Reflection, page, limit);
+        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, Reflection, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -67,8 +67,8 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
-            E element = CreateObject();
-            element = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
+            T element = CreateObject();
+            element = (T) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
             elements.Add(element.Key(), element);
         }
         foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
@@ -91,19 +91,20 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
                     List<KeyElement> keyParts = new List<KeyElement>();
                     foreach (var ownerKeyPart in ownerKey.KeyElements())
                     {
-                        keyParts.Add(new KeyElement(Reflection.GetColumnReflection(ownerKeyPart.Column().Relation()), ownerKeyPart.Value()));
+                        string? relation = ownerKeyPart.Column().Relation();
+                        if (relation == null)
+                            throw new ModelSetupException($"Relation not found for owner key {ownerKeyPart.Column().Name()}");
+                        keyParts.Add(new KeyElement(Reflection.GetColumnReflection(relation), ownerKeyPart.Value()));
                     }
                     IKey primaryKey = new Key(keyParts);
                         
-                    elements.TryGetValue(primaryKey, out E? savedElement);
+                    elements.TryGetValue(primaryKey, out T? savedElement);
                     if (savedElement == null)
                     {
                         throw new DatabaseException($"Error saving element, No element found for owner key {ownerKey}");
                     }
                     savedElement.Table(connectedTable.Name()).Add(row);
-                        
                 }
-                int i=0;
             }
             else
             {
@@ -114,25 +115,25 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         return elements.Values;
     }
     
-    public override async Task<IEnumerable<E>> GetListObjectsAsync(int? page = null, int? limit = null)
+    public override async Task<IEnumerable<T>> GetListObjectsAsync(int? page = null, int? limit = null)
     {
-        return await GetListObjectsAsync(new Filters<E>(), page, limit);
+        return await GetListObjectsAsync(new Filters<T>(), page, limit);
     }
 
     public override async Task<int> CountAsync()
     {
-        return await CountAsync(new Filters<E>());
+        return await CountAsync(new Filters<T>());
     }
 
-    public override async Task<int> CountAsync(IFilters<E> filters)
+    public override async Task<int> CountAsync(IFilters<T> filters)
     {
         throw new NotImplementedException(); // TODO Implement count
     }
 
-    public override async Task<E> GetByKeyAsync(IKey key)
+    public override async Task<T> GetByKeyAsync(IKey key)
     {
 
-        E receivedElement = default(E);
+        T? receivedElement = default(T);
         
         PostgresqlSelectByKeyQuery selectByKeyQuery = new (Reflection, key);
 
@@ -150,7 +151,12 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
             if (await reader.ReadAsync())
             {
                 receivedElement = CreateObject();
-                receivedElement = (E) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(receivedElement);
+                receivedElement = (T) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(receivedElement);
+            }
+
+            if (receivedElement == null)
+            {
+                throw new DatabaseNotFoundException($"Error saving element");
             }
 
             foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
@@ -164,7 +170,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
                         row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
                         list.Add(row);
                     }
-                    convertToTable(connectedTable.Property(), receivedElement, list);
+                    ConvertToTable(connectedTable.Property(), receivedElement, list);
                 }
                 else
                 {
@@ -187,12 +193,12 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         
     }
     
-    public override async Task<E> SaveAsync(E element)
+    public override async Task<T> SaveAsync(T element)
     {
         
         // TODO Check that all elements are objects
    
-        PostgresqlSaveQuery<E> saveQuery = new (Reflection, element);
+        PostgresqlSaveQuery<T> saveQuery = new (Reflection, element);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -215,15 +221,13 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         
     }
 
-    public override async Task<IEnumerable<E>> SaveManyAsync(IEnumerable<E> elements, int chunkSize = 1000)
+    public override async Task<IEnumerable<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000)
     {
         
         // TODO Check that all elements are objects
         // TODO create a 100k limit
-        
-        Dictionary<IKey, E> savedElements = new ();
-        
-        IEnumerable<E[]> chunks = elements.Chunk(chunkSize);
+        List<T> listOfElements = elements.ToList();
+        IEnumerable<T[]> chunks = listOfElements.Chunk(chunkSize);
         
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -234,7 +238,7 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         PostgresqlBatch batch = new PostgresqlBatch((PostgresqlConnection)Connection, transaction);
         foreach (var chunk in chunks)
         {
-            PostgresqlSaveManyQueries<E> saveQuery = new (Reflection, chunk);
+            PostgresqlSaveManyQueries<T> saveQuery = new (Reflection, chunk);
             foreach (var subQuery in saveQuery.GetQueries())
             {
                 PostgresqlBatchCommand cmd = new PostgresqlBatchCommand(subQuery);
@@ -247,31 +251,49 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
             
             await batch.ExecuteNonQueryAsync();
             
-            Dictionary<string, Filter<E>> filtersDict = new Dictionary<string, Filter<E>>(); // TODO key should not be string
-            foreach (var element in elements)
+            Dictionary<string, Filter<T>> filtersDict = new Dictionary<string, Filter<T>>(); // TODO key should not be string
+            foreach (var element in listOfElements)
             {
                 foreach (var keyElement in element.Key().KeyElements()) 
                 {
-                    filtersDict.TryGetValue(keyElement.Column().Name(), out Filter<E>? filter);
+                    filtersDict.TryGetValue(keyElement.Column().Name(), out Filter<T>? filter);
                     if (filter == null)
                     {
                         Type listType = typeof(List<>).MakeGenericType(keyElement.Column().Type());
-                        IList list = (IList) Activator.CreateInstance(listType);
+                        object? value = Activator.CreateInstance(listType); // TODO possible performance issues
+                        if (value == null)
+                            throw new ReflectionException($"Error creating list for type {keyElement.Column().Type().Name}");
+                        IList list = (IList) value;
                         list.Add(keyElement.Value());
-                        filter = new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);  
+                        filter = new Filter<T>(keyElement.Column(), ComparisonOperator.In, list);  
                     }
                     else
                     {
                         filtersDict.Remove(keyElement.Column().Name());
-                        IList list = (IList) filter.Value();
+                        object? value = filter.Value();
+                        IList? list;
+                        if (value == null)
+                        {
+                            Type listType = typeof(List<>).MakeGenericType(keyElement.Column().Type());
+                            object? createdList = Activator.CreateInstance(listType);
+                            if (createdList == null)
+                                throw new ReflectionException($"Error creating list for type {keyElement.Column().Type().Name}"); // TODO not ReflectionException
+                            list = (IList) createdList;
+                        }
+                        else
+                        {
+                            list = (IList) value;
+                        }
+                        if (list == null)
+                            throw new ReflectionException($"Error creating list for type {keyElement.Column().Type().Name}"); // TODO not ReflectionException
                         list.Add(keyElement.Value());
-                        filter =  new Filter<E>(keyElement.Column(), ComparisonOperator.In, list);
+                        filter =  new Filter<T>(keyElement.Column(), ComparisonOperator.In, list);
                     }
                     filtersDict.Add(keyElement.Column().Name(), filter);
                 }
             }
 
-            Filters<E> filters = new ();
+            Filters<T> filters = new ();
             foreach (var keyValue in filtersDict)
             {
                 filters.Add(keyValue.Value);
@@ -289,12 +311,12 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
     
     public override async Task<int> DeleteAsync()
     {
-        return await DeleteAsync(new Filters<E>()); 
+        return await DeleteAsync(new Filters<T>()); 
     }
     
-    public override async Task<int> DeleteAsync(IFilters<E> filters)
+    public override async Task<int> DeleteAsync(IFilters<T> filters)
     {
-        PostgresqlDeleteListQuery<E> selectListQuery = new PostgresqlDeleteListQuery<E>(filters, Reflection);
+        PostgresqlDeleteListQuery<T> selectListQuery = new PostgresqlDeleteListQuery<T>(filters, Reflection);
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
         {
@@ -309,12 +331,14 @@ public class PostgresqlManager<E> : Manager<E> where E : IDatabaseObject
         throw new NotImplementedException();
     }
 
-    private void convertToTable(PropertyInfo property, E element, List<IDatabaseObjectTableElement> list)
+    private void ConvertToTable(PropertyInfo property, T element, List<IDatabaseObjectTableElement> list)
     {
         
         Type listType = typeof(List<IDatabaseObjectTableElement>);
-        ConstructorInfo constructor = property.PropertyType.GetConstructor(new Type[] { listType }); // TODO move to cache
-        property.SetValue(element, constructor.Invoke(new object[] { list }));
+        ConstructorInfo? constructor = property.PropertyType.GetConstructor([listType]); // TODO move to cache
+        if (constructor == null)
+            throw new ReflectionException($"Constructor not found for type {property.PropertyType.Name}");
+        property.SetValue(element, constructor.Invoke([list]));
         
     }
     

@@ -1,33 +1,25 @@
 using System.Text;
 using LightSpeedDbClient.Database;
+using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSaveManyQueries<E> where E : IDatabaseObject
+public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, IEnumerable<T> elements)
+    where T : IDatabaseObject
 {
-    
-    private readonly DatabaseObjectReflection _reflection;
-    private readonly List<E> _elements;
-    private int _paramsCount;
+    private readonly List<T> _elements = elements.ToList();
     private readonly List<PostgresqlSubQuery> _subQueries = new ();
 
-    public PostgresqlSaveManyQueries(DatabaseObjectReflection reflection, E element) : this(reflection, new List<E> { element }) {}
-    
-    public PostgresqlSaveManyQueries(DatabaseObjectReflection reflection, IEnumerable<E> elements)
-    {
-        _reflection = reflection;
-        _elements = elements.ToList();
-    }
+    public PostgresqlSaveManyQueries(DatabaseObjectReflection reflection, T element) : this(reflection, new List<T> { element }) {}
 
     public List<PostgresqlSubQuery> GetQueries()
     {
-        _paramsCount = 0;
-        
+
         _subQueries.Add(MainRowInsertQuery());
         
-        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
+        List<IConnectedTable> connectedTables = reflection.ConnectedTables().ToList();
         foreach (var connectedTable in connectedTables)
         {
             _subQueries.Add(ConnectedTableDeleteQuery(connectedTable));
@@ -61,7 +53,7 @@ public class PostgresqlSaveManyQueries<E> where E : IDatabaseObject
         StringBuilder parameterNamesBuilder = new StringBuilder();
         StringBuilder keyBuilder = new StringBuilder();
         
-        var columns = _reflection.MainTableReflection.Columns().ToList();
+        var columns = reflection.MainTableReflection.Columns().ToList();
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
@@ -95,7 +87,7 @@ public class PostgresqlSaveManyQueries<E> where E : IDatabaseObject
 
         }
         
-        var partsOfPrimaryKey = _reflection.MainTableReflection.PartsOfPrimaryKey().ToList();
+        var partsOfPrimaryKey = reflection.MainTableReflection.PartsOfPrimaryKey().ToList();
         for (int i = 0; i < partsOfPrimaryKey.Count; i++)
         {
             var column = partsOfPrimaryKey[i];
@@ -107,7 +99,7 @@ public class PostgresqlSaveManyQueries<E> where E : IDatabaseObject
         StringBuilder sb = new StringBuilder();
         sb.Append($"INSERT INTO");
         sb.Append($" ");
-        sb.Append($"{_reflection.MainTableReflection.QueryName()}({columnNamesBuilder.ToString()})");
+        sb.Append($"{reflection.MainTableReflection.QueryName()}({columnNamesBuilder.ToString()})");
         sb.Append($" ");
         sb.Append($"VALUES {parameterNamesBuilder.ToString()}");
         sb.Append($" ");
@@ -174,8 +166,14 @@ public class PostgresqlSaveManyQueries<E> where E : IDatabaseObject
             sb.Append($"(");
             foreach (IColumnReflection keyPart in partsOfOwnerKey)
             {
-                IColumnReflection ownerColumn = _reflection.MainTableReflection.GetColumnReflection(keyPart.Relation());
-                var value = ownerColumn.Property().GetValue(element);
+
+                string? relation = keyPart.Relation();
+                if (relation == null)
+                    throw new ModelSetupException($"Relation is null for column {keyPart.QueryName()}");
+                IColumnReflection? ownerColumn = reflection.MainTableReflection.GetColumnReflection(relation);
+                if (ownerColumn == null)
+                    throw new ModelSetupException($"Owner column is null for column {keyPart.QueryName()}");
+                object? value = ownerColumn.Property().GetValue(element);
                 string parameterName = parameters.Add(ownerColumn.Type(), value);
                 sb.Append($"{parameterName}");
                 if (index2 < partsOfOwnerKey.Count - 1)

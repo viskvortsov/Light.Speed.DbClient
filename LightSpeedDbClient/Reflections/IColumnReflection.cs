@@ -9,14 +9,14 @@ public interface IColumnReflection
     string QueryName();
     Type Type();
     IQueryType QueryType();
-    string Relation();
+    string? Relation();
     PropertyInfo Property();
     ITableReflection Table();
     bool IsPartOfPrimaryKey();
     bool IsPartOfOwnerKey();
     bool HasAdditionalFields();
     bool HasForeignKeyTable();
-    IEnumerable<IColumnReflection> AdditionalFields();
+    IEnumerable<IColumnReflection?> AdditionalFields();
     public string ForeignKeyName();
     ITableReflection ForeignKeyTable();
     IColumnReflection ForeignKeyColumn();

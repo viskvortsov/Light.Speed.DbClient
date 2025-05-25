@@ -19,10 +19,10 @@ public class DatabaseObjectReflection
         {
             foreach (var column in table.TableReflection().PartsOfOwnerKey())
             {
-                if (GetPrimaryKeyPart(column.Relation()) == null)
-                {
+                string? relation = column.Relation();
+                if (relation == null)
                     throw new ModelSetupException("Relation not found");
-                }
+                _ = GetPrimaryKeyPart(relation);
             }
         }
         
@@ -30,17 +30,20 @@ public class DatabaseObjectReflection
     
     public IColumnReflection GetColumnReflection(string name)
     {
-        return _mainTableReflection.Columns().SingleOrDefault(x => x.Name() == name.ToLower());
+        return _mainTableReflection.Columns().SingleOrDefault(x => x.Name() == name.ToLower()) 
+               ?? throw new ReflectionException($"Column {name} not found");
     }
     
     public IConnectedTable GetTableReflection(string name)
     {
-        return _connectedTables.SingleOrDefault(x => x.Name() == name.ToLower());
+        return _connectedTables.SingleOrDefault(x => x.Name() == name.ToLower())
+               ?? throw new ReflectionException($"Table {name} not found");
     }
-    
-    public IColumnReflection GetPrimaryKeyPart(string name)
+
+    private IColumnReflection GetPrimaryKeyPart(string name)
     {
-        return _mainTableReflection.PartsOfPrimaryKey().SingleOrDefault(x => x.Name() == name.ToLower());
+        return _mainTableReflection.PartsOfPrimaryKey().SingleOrDefault(x => x.Name() == name.ToLower())
+               ?? throw new ReflectionException($"Primary key {name} not found");
     }
     
     public IConnectedTables ConnectedTables()

@@ -5,22 +5,18 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDbClient.Implementations;
 
-public class GuidKey<E> : Key where E : IDatabaseElement
+public class GuidKey<T> : Key where T : IDatabaseElement
 {
-
-    private readonly Guid _id;
-
+    
     public GuidKey(Guid id)
     {
-        DatabaseObjectReflection reflection = ClientSettings.GetReflection(typeof(E));
+        DatabaseObjectReflection reflection = ClientSettings.GetReflection(typeof(T));
         if (reflection.MainTableReflection.PartsOfPrimaryKey().Count() > 1)
             throw new ModelSetupException(
                 "GuidKey can only be used with a single primary key column"
             );
         IColumnReflection column = reflection.MainTableReflection.PartsOfPrimaryKey().First();
-        _id = id;
-        _keyElements = new SortedList<string, KeyElement>();
-        _keyElements.Add(column.Name(), new KeyElement(column, id));
+        InternalKeyElements = new SortedList<string, KeyElement> { { column.Name(), new KeyElement(column, id) } };
     }
     
 }

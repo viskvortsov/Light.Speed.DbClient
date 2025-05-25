@@ -6,7 +6,7 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSelectListObjectsQuery<E>: IQuery where E : IDatabaseElement
+public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElement
 {
     
     private readonly DatabaseObjectReflection _reflection;
@@ -14,16 +14,16 @@ public class PostgresqlSelectListObjectsQuery<E>: IQuery where E : IDatabaseElem
     private readonly int? _limit;
     private readonly bool _usePagination;
     private readonly QueryParameters _parameters;
-    private readonly IFilters<E> _filters;
+    private readonly IFilters<T> _filters;
     
-    public PostgresqlSelectListObjectsQuery(IFilters<E> filters, DatabaseObjectReflection reflection, int? page = null, int? limit = null)
+    public PostgresqlSelectListObjectsQuery(IFilters<T> filters, DatabaseObjectReflection reflection, int? page = null, int? limit = null)
     {
         _reflection = reflection;
         _page = page;
         _limit = limit;
 
-        if (_page == 0)
-            throw new PageValueException();
+        if (_page <= 0)
+            throw new PageValueException("Page value should be more then 0.");
         
         if (page != null && limit == null)
             limit = 10; // TODO
@@ -110,7 +110,9 @@ public class PostgresqlSelectListObjectsQuery<E>: IQuery where E : IDatabaseElem
         int index0 = 0;
         foreach (var additionalField in additionalFields)
         {
-            ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
+            ITableReflection? foreignKeyTable = additionalField.ForeignKeyTable();
+            if (foreignKeyTable == null)
+                throw new ReflectionException("Additional field has no foreign key table.");
             sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
             if (index0 < additionalFields.Count - 1)
                 sb.Append(", ");
@@ -125,21 +127,29 @@ public class PostgresqlSelectListObjectsQuery<E>: IQuery where E : IDatabaseElem
         var additionalTables = _reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
         foreach (var column in additionalTables)
         {
+            ITableReflection? tableReflection = column.ForeignKeyTable();
+            if (tableReflection == null)
+                throw new ReflectionException($"Foreign key table not found for {column.ForeignKeyName()}");
+            
+            IColumnReflection? columnReflection = column.ForeignKeyColumn();
+            if (columnReflection == null)
+                throw new ReflectionException($"Foreign key column not found for {column.ForeignKeyName()}");
+
             sb.Append(" ");
             sb.Append("LEFT JOIN");
             sb.Append(" ");
-            sb.Append($"{column.ForeignKeyTable().QueryName()}");
+            sb.Append($"{tableReflection.QueryName()}");
             sb.Append(" ");
             sb.Append("ON");
             sb.Append(" ");
-            sb.Append($"{column.ForeignKeyTable().QueryName()}.{column.ForeignKeyColumn().QueryName()}");
+            sb.Append($"{tableReflection.QueryName()}.{columnReflection.QueryName()}");
             sb.Append(" ");
             sb.Append("=");
             sb.Append(" ");
             sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
         }
 
-        IFilters<E> filters = _filters.ConnectedTableFilters();
+        IFilters<T> filters = _filters.ConnectedTableFilters();
         HashSet<ITableReflection> uniqueTables = new HashSet<ITableReflection>();
         foreach (var filter in filters)
         {
@@ -177,7 +187,7 @@ public class PostgresqlSelectListObjectsQuery<E>: IQuery where E : IDatabaseElem
                 sb.Append(" ");
             }
             
-            Filters<E> thisTableFilters = new Filters<E>();
+            Filters<T> thisTableFilters = new Filters<T>();
             foreach (var filter in _filters.ConnectedTableFilters())
             {
                 if (filter.Column().Table() == table)
@@ -188,7 +198,7 @@ public class PostgresqlSelectListObjectsQuery<E>: IQuery where E : IDatabaseElem
             foreach (var filter in thisTableFilters)
             {
                 var value = filter.Value();
-                var type = value.GetType();
+                var type = filter.Type();
                 string parameterName = _parameters.Add(type, value);
                 
                 sb.Append($"{filter.Column().Table().QueryName()}.{filter.Column().QueryName()}");
@@ -213,12 +223,12 @@ public class PostgresqlSelectListObjectsQuery<E>: IQuery where E : IDatabaseElem
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<E>> mainTableFilters = _filters.MainTableFilters().ToList();
+            List<Filter<T>> mainTableFilters = _filters.MainTableFilters().ToList();
             for (int i = 0; i < mainTableFilters.Count; i++)
             {
                 var filter = mainTableFilters[i];
                 var value = filter.Value();
-                var type = value.GetType();
+                var type = filter.Type();
                 string parameterName = _parameters.Add(type, value);
                 sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (i < mainTableFilters.Count - 1)
@@ -328,12 +338,12 @@ public class PostgresqlSelectListObjectsQuery<E>: IQuery where E : IDatabaseElem
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<E>> filters = _filters.ToList();
+            List<Filter<T>> filters = _filters.ToList();
             for (int i = 0; i < filters.Count; i++)
             {
                 var filter = filters[i];
                 var value = filter.Value();
-                var type = value.GetType();
+                var type = filter.Type();
                 string parameterName = _parameters.Add(type, value);
                 sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (i < filters.Count - 1)
