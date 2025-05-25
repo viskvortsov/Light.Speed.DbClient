@@ -2,7 +2,7 @@ using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Implementations;
 using LightSpeedDbClient.Models;
 
-namespace ExampleModels.Currencies;
+namespace ExampleModels;
 
 [Model(table: "product_types")]
 [TranslatableTable(table: "product_type_translations")]

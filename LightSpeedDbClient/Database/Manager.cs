@@ -39,7 +39,7 @@ public abstract class Manager<E> : IManager<E> where E : IDatabaseElement
     public object CreateRow(Type type)
     {
 
-        ConstructorInfo constructor = ClientSettings.GetConstructor(type);
+        ConstructorInfo? constructor = ClientSettings.GetConstructor(type);
         if (constructor == null)
             throw new ConstructorNotFoundException(); // TODO message
         return constructor.Invoke(new object[]{ModelType.Row});;

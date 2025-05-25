@@ -37,7 +37,7 @@ public abstract class DatabaseObject : IDatabaseObject
         IDatabaseObjectTable table = (IDatabaseObjectTable) columnReflection.Property().GetValue(this);
         if (table == null)
         {
-            ConstructorInfo constructor = ClientSettings.GetConstructor(columnReflection.Type());
+            ConstructorInfo? constructor = ClientSettings.GetConstructor(columnReflection.Type());
             table = (IDatabaseObjectTable) constructor.Invoke(new object[] { Models.ModelType.Row });
             columnReflection.Property().SetValue(this, table);
         }

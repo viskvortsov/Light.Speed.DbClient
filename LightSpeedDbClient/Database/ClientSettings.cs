@@ -5,27 +5,32 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDbClient.Database;
 
-public class ClientSettings
+public static class ClientSettings
 {
     
-    private static Dictionary<Type, ConstructorInfo> _constructors { get; } = new();
-    private static Dictionary<Type, DatabaseObjectReflection> _reflections { get; } = new();
-    private static Dictionary<Type, ITableReflection> _connectedTablesReflections { get; } = new();
+    private static Dictionary<Type, ConstructorInfo?> Constructors { get; } = new();
+    private static Dictionary<Type, DatabaseObjectReflection> Reflections { get; } = new();
+    private static Dictionary<Type, ITableReflection> ConnectedTablesReflections { get; } = new();
     private static Dictionary<Type, IQueryType> _queryTypes = new ();
     
-    internal static ConstructorInfo GetConstructor(Type type)
+    internal static ConstructorInfo? GetConstructor(Type type)
     {
 
-        lock (_constructors)
+        lock (Constructors)
         {
             
-            if (_constructors.ContainsKey(type))
+            if (Constructors.TryGetValue(type, out var constructor1))
             {
-                return _constructors[type];
+                return constructor1;
             }
 
-            ConstructorInfo info;
-            _constructors.Add(type, info = type.GetConstructor(new Type[] { typeof(ModelType) }));
+            ConstructorInfo? info;
+
+            ConstructorInfo? constructor = type.GetConstructor([typeof(ModelType)]);
+            if (constructor == null)
+                throw new ReflectionException(); // TODO
+            
+            Constructors.Add(type, info = constructor);
 
             return info;
 
@@ -36,25 +41,25 @@ public class ClientSettings
     internal static DatabaseObjectReflection GetReflection(Type type)
     {
         
-        if (_reflections.ContainsKey(type))
+        if (Reflections.TryGetValue(type, out var reflection1))
         {
-            return _reflections[type];
+            return reflection1;
         }
 
-        lock (_reflections) lock(_connectedTablesReflections)
+        lock (Reflections) lock(ConnectedTablesReflections)
         {
             
-            if (_reflections.ContainsKey(type))
+            if (Reflections.TryGetValue(type, out var reflection2))
             {
-                return _reflections[type];
+                return reflection2;
             }
             
             DatabaseObjectReflection reflection = new DatabaseObjectReflection(type);
-            _reflections.Add(type, reflection);
+            Reflections.Add(type, reflection);
 
             foreach (var connectedTable in reflection.ConnectedTables())
             {
-                _connectedTablesReflections.Add(connectedTable.TableReflection().Type(), connectedTable.TableReflection());
+                ConnectedTablesReflections.Add(connectedTable.TableReflection().Type(), connectedTable.TableReflection());
             }
             
             return reflection;
@@ -66,9 +71,9 @@ public class ClientSettings
     internal static ITableReflection GetConnectedTableReflection(Type type)
     {
         
-        if (_connectedTablesReflections.ContainsKey(type))
+        if (ConnectedTablesReflections.TryGetValue(type, out var reflection))
         {
-            return _connectedTablesReflections[type];
+            return reflection;
         }
 
         throw new ReflectionException(); // TODO

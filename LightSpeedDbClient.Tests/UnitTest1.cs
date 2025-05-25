@@ -1,3 +1,4 @@
+using ExampleModels;
 using ExampleModels.Currencies;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Implementations;

@@ -2,7 +2,7 @@ using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Implementations;
 using LightSpeedDbClient.Models;
 
-namespace ExampleModels.Currencies;
+namespace ExampleModels;
 
 [Model(table: "exchange_rates")]
 public class ExchangeRateRow : DatabaseObjectTableElement
