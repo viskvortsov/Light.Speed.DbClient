@@ -4,5 +4,6 @@ public enum ModelType
 {
     Reference,
     Object,
-    Row
+    Row,
+    Enum
 }
