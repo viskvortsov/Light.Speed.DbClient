@@ -8,7 +8,6 @@ public interface IColumnReflection
     string Name();
     string QueryName();
     Type Type();
-    IQueryType QueryType();
     string? Relation();
     PropertyInfo Property();
     ITableReflection Table();

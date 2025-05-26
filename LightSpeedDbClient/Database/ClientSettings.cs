@@ -8,12 +8,11 @@ namespace LightSpeedDbClient.Database;
 public static class ClientSettings
 {
     
-    private static Dictionary<Type, ConstructorInfo?> Constructors { get; } = new();
+    private static Dictionary<Type, ConstructorInfo> Constructors { get; } = new();
     private static Dictionary<Type, DatabaseObjectReflection> Reflections { get; } = new();
     private static Dictionary<Type, ITableReflection> ConnectedTablesReflections { get; } = new();
-    private static Dictionary<Type, IQueryType> _queryTypes = new ();
-    
-    internal static ConstructorInfo? GetConstructor(Type type)
+
+    public static ConstructorInfo GetConstructor(Type type)
     {
 
         lock (Constructors)
@@ -38,14 +37,8 @@ public static class ClientSettings
 
     }
     
-    internal static DatabaseObjectReflection GetReflection(Type type)
+    internal static DatabaseObjectReflection CreateReflection(Type type)
     {
-        
-        if (Reflections.TryGetValue(type, out var reflection1))
-        {
-            return reflection1;
-        }
-
         lock (Reflections) lock(ConnectedTablesReflections)
         {
             
@@ -65,7 +58,13 @@ public static class ClientSettings
             return reflection;
 
         }
-
+    }
+    
+    internal static DatabaseObjectReflection GetReflection(Type type)
+    {
+        if (!Reflections.TryGetValue(type, out var reflection1))
+            throw new ReflectionException($"Reflection not found for type {type.Name}");
+        return reflection1;
     }
     
     internal static ITableReflection GetConnectedTableReflection(Type type)
@@ -78,21 +77,6 @@ public static class ClientSettings
 
         throw new ReflectionException($"Connected table not found for type {type.Name}");
 
-    }
-
-    public static void SetQueryTypes(Dictionary<Type, IQueryType> queryTypes)
-    {
-        _queryTypes = queryTypes;
-    }
-    
-    public static IQueryType GetQueryType(Type type)
-    {
-        _queryTypes.TryGetValue(type, out var value);
-        if (value == null)
-        {
-            throw new ReflectionException($"Query type not found for type {type.Name}");
-        }
-        return value;
     }
     
 }

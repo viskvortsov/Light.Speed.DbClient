@@ -12,7 +12,6 @@ public class PostgresqlDatabase(string connectionString) : IDatabase
     public PostgresqlDatabase(string host, int port, string database, string user, string password)
         : this($"Host={host};Port={port};Username={user};Password={password};Database={database}")
     {
-        ClientSettings.SetQueryTypes(PostgresqlDefaultSettings.DefaultQueryTypes);
     }
     
     public PostgresqlDatabase(string host, string database, string user, string password): this(host, 5432, database, user, password){}

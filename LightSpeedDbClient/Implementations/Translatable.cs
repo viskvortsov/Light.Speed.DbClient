@@ -4,8 +4,6 @@ namespace LightSpeedDbClient.Implementations;
 
 public class Translatable(Guid id) : ITranslatable
 {
-
-    private readonly Guid _id = id;
     private readonly Dictionary<Guid, string?> _translations = new ();
 
     public Translatable() : this(Guid.NewGuid())
@@ -25,6 +23,11 @@ public class Translatable(Guid id) : ITranslatable
     {
         _translations.TryGetValue(languageId, out string? translation);
         return translation ?? "";
+    }
+
+    public Guid GetId()
+    {
+        return id;
     }
     
 }

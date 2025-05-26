@@ -2,7 +2,6 @@ using System.Reflection;
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Exceptions;
-using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Reflections;
 
@@ -17,7 +16,6 @@ public class ColumnReflection : IColumnReflection
     private readonly bool _isPartOfPrimaryKey;
     private readonly bool _isPartOfOwnerKey;
     
-    private readonly IQueryType? _queryType;
     private readonly List<IColumnReflection?> _additionalFields;
     private readonly string? _relation;
     private readonly ITableReflection? _foreignKeyTable;
@@ -43,7 +41,6 @@ public class ColumnReflection : IColumnReflection
 
         if (column != null)
         {
-            _queryType = ClientSettings.GetQueryType(_type);
             
             PrimaryKeyAttribute? primaryKey = property.GetCustomAttribute<PrimaryKeyAttribute>();
         
@@ -119,12 +116,7 @@ public class ColumnReflection : IColumnReflection
     {
         return _type;
     }
-
-    public IQueryType QueryType()
-    {
-        return _queryType ?? throw new ReflectionException($"Query type not found for column {_name}");
-    }
-
+    
     public string? Relation()
     {
         return _relation;
