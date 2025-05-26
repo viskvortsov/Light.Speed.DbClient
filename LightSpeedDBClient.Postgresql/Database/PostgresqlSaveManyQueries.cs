@@ -6,13 +6,13 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, IEnumerable<T> elements)
+public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, IEnumerable<T> elements, IMapper mapper)
     where T : IDatabaseObject
 {
     private readonly List<T> _elements = elements.ToList();
     private readonly List<PostgresqlSubQuery> _subQueries = new ();
 
-    public PostgresqlSaveManyQueries(DatabaseObjectReflection reflection, T element) : this(reflection, new List<T> { element }) {}
+    public PostgresqlSaveManyQueries(DatabaseObjectReflection reflection, T element, PostgresqlMapper mapper) : this(reflection, new List<T> { element }, mapper) {}
 
     public List<PostgresqlSubQuery> GetQueries()
     {
@@ -75,6 +75,7 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
                 var property = column.Property();
                 var value = property.GetValue(element);
                 var type = property.PropertyType;
+                value = mapper.MapToDatabaseValue(value, type);
                 string parameterName = parameters.Add(type, value);
                 parameterNamesBuilder.Append(parameterName);
                 if (i < columns.Count - 1)

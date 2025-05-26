@@ -37,7 +37,7 @@ public static class ClientSettings
 
     }
     
-    internal static DatabaseObjectReflection CreateReflection(Type type)
+    internal static DatabaseObjectReflection GetReflection(Type type)
     {
         lock (Reflections) lock(ConnectedTablesReflections)
         {
@@ -58,13 +58,6 @@ public static class ClientSettings
             return reflection;
 
         }
-    }
-    
-    internal static DatabaseObjectReflection GetReflection(Type type)
-    {
-        if (!Reflections.TryGetValue(type, out var reflection1))
-            throw new ReflectionException($"Reflection not found for type {type.Name}");
-        return reflection1;
     }
     
     internal static ITableReflection GetConnectedTableReflection(Type type)

@@ -12,14 +12,16 @@ public class PostgresqlSaveQuery<T>: IQuery where T : IDatabaseObject
     private readonly DatabaseObjectReflection _reflection;
     private readonly QueryParameters _parameters;
     private readonly List<T> _elements;
+    private readonly IMapper _mapper;
 
-    public PostgresqlSaveQuery(DatabaseObjectReflection reflection, T element) : this(reflection, new List<T> { element }) {}
+    public PostgresqlSaveQuery(DatabaseObjectReflection reflection, T element, IMapper mapper) : this(reflection, new List<T> { element }, mapper) {}
 
-    private PostgresqlSaveQuery(DatabaseObjectReflection reflection, IEnumerable<T> elements)
+    private PostgresqlSaveQuery(DatabaseObjectReflection reflection, IEnumerable<T> elements, IMapper mapper)
     {
         _reflection = reflection;
         _elements = elements.ToList();
         _parameters = new ();
+        _mapper = mapper;
     }
 
     public string GetQueryText()
@@ -73,6 +75,7 @@ public class PostgresqlSaveQuery<T>: IQuery where T : IDatabaseObject
                 var property = column.Property();
                 var value = property.GetValue(element);
                 var type = property.PropertyType;
+                value = _mapper.MapToDatabaseValue(value, type);
                 string parameterName = _parameters.Add(type, value);
                 parameterNamesBuilder.Append(parameterName);
                 if (i < columns.Count - 1)
@@ -170,7 +173,9 @@ public class PostgresqlSaveQuery<T>: IQuery where T : IDatabaseObject
                 if (ownerColumn == null)
                     throw new ModelSetupException($"Owner column {relation} is not found for {keyPart.Name()}");
                 var value = ownerColumn.Property().GetValue(element);
-                string parameterName = _parameters.Add(ownerColumn.Type(), value);
+                var type = ownerColumn.Type();
+                value = _mapper.MapToDatabaseValue(value, type);
+                string parameterName = _parameters.Add(type, value);
                 sb.Append($"{parameterName}");
                 if (index2 < partsOfOwnerKey.Count - 1)
                     sb.Append(", ");
@@ -237,7 +242,9 @@ public class PostgresqlSaveQuery<T>: IQuery where T : IDatabaseObject
                 sb.Append($"(");
                 foreach (var column in connectedTableColumns)
                 {
-                    string parameterName = _parameters.Add(column.Type(), column.Property().GetValue(row));
+                    var value = column.Property().GetValue(row);
+                    value = _mapper.MapToDatabaseValue(value, column.Type());
+                    string parameterName = _parameters.Add(column.Type(), value);
                     sb.Append($"{parameterName}");
                     if (index3 < connectedTableColumns.Count - 1)
                         sb.Append(",");

@@ -23,15 +23,10 @@ internal class PostgresqlCommand: IDisposable, IAsyncDisposable
         {
             
             string name = parameter.Name();
-            object value = parameter.Value() ?? DBNull.Value;
- 
             Type type = parameter.Type();
-            PostgresqlDefaultSettings.DefaultTypes.TryGetValue(type, out NpgsqlDbType sqlType);
-            if (sqlType == null)
-            {
-                throw new TypeMappingException($"Incompatible type {type} for parameter {name}.");
-            }
-            
+            NpgsqlDbType sqlType = PostgresqlDefaultSettings.GetSqlDbType(type);
+            object? value = parameter.Value();
+            value = PostgresqlDefaultSettings.ConvertValue(value);
             _innerCommand.Parameters.AddWithValue(name, sqlType, value);
             
         }

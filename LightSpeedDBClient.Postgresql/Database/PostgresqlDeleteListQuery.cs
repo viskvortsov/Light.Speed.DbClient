@@ -5,7 +5,7 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectReflection reflection) : IQuery
+public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectReflection reflection, IMapper mapper) : IQuery
     where T : IDatabaseElement
 {
     private readonly QueryParameters _parameters = new ();
@@ -54,6 +54,7 @@ public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectRef
             {
                 var value = filter.Value();
                 var type = filter.Type();
+                value = mapper.MapToDatabaseValue(value, type);
                 string parameterName = _parameters.Add(type, value);
                 sb.Append($"{reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} = {parameterName}");
                 if (index1 < filters1.Count - 1)
@@ -109,6 +110,7 @@ public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectRef
             {
                 var value = filter.Value();
                 var type = filter.Type();
+                value = mapper.MapToDatabaseValue(value, type);
                 string parameterName =_parameters.Add(type, value);
                 sb.Append($"{reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (index4 < filters1.Count - 1)

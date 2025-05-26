@@ -1,21 +1,49 @@
+using System.Collections;
+using System.Reflection;
+using LightSpeedDbClient.Exceptions;
+using LightSpeedDbClient.Implementations;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
-using Npgsql;
+using NpgsqlTypes;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlMapper(ITableReflection reflection, NpgsqlDataReader reader) : IMapper
+public class PostgresqlMapper(ITableReflection reflection) : IMapper
 {
-    public IDatabaseObject MapToModel(IDatabaseObject element)
+    
+    internal static readonly Dictionary<Type, NpgsqlDbType> DefaultTypes = new()
     {
-        
+        { typeof(Guid),    NpgsqlDbType.Uuid },
+        { typeof(string),  NpgsqlDbType.Varchar },
+        { typeof(bool),    NpgsqlDbType.Boolean },
+        { typeof(byte),    NpgsqlDbType.Bytea },
+        { typeof(DateTime),    NpgsqlDbType.TimestampTz },
+        { typeof(decimal),    NpgsqlDbType.Numeric },
+        { typeof(double),    NpgsqlDbType.Double },
+        { typeof(float),    NpgsqlDbType.Real },
+        { typeof(short),    NpgsqlDbType.Smallint },
+        { typeof(int),    NpgsqlDbType.Integer },
+        { typeof(long),    NpgsqlDbType.Bigint }
+    };
+    
+    public IDatabaseObject MapFromDatabaseToModel(IDatabaseObject element, List<object?> values)
+    {
         int i = 0;
+        
         foreach (IColumnReflection column in reflection.Columns())
         {
-            var value = MapToValue(i, column.Type());
+            var valueFromDb = values[i];
+            var value = MapFromDatabaseValue(valueFromDb, column.Type());
             var property = column.Property();
-            property.SetValue(element, value);
-            i += 1;
+            try
+            {
+                property.SetValue(element, value);
+            }
+            catch (TargetException ex)
+            {
+                throw new DatabaseException($"Error getting element by key", ex);
+            }
+            i++;
         }
 
         // additional fields
@@ -23,40 +51,126 @@ public class PostgresqlMapper(ITableReflection reflection, NpgsqlDataReader read
         
         foreach (var column in additionalFields)
         {
-            var value = MapToValue(i, column.Type());
+            var valueFromDb = values[i];
+            var value = MapFromDatabaseValue(valueFromDb, column.Type());
             var property = column.Property();
-            property.SetValue(element, value);
-            i += 1;
-            // TODO where do we store it
+            try
+            {
+                property.SetValue(element, value);
+            }
+            catch (TargetException ex)
+            {
+                throw new DatabaseException($"Error getting element by key", ex);
+            }
+            i++;
         }
         
         return element;
-
     }
-    
-    public IDatabaseObjectTableElement MapToModel(IDatabaseObjectTableElement element)
+
+    public IDatabaseObjectTableElement MapFromDatabaseToModel(ITableReflection connectedTableReflection, IDatabaseObjectTableElement element, List<object?> values)
     {
-        
         int i = 0;
-        foreach (IColumnReflection column in reflection.Columns())
+        foreach (IColumnReflection column in connectedTableReflection.Columns())
         {
-            var value = MapToValue(i, column.Type());
+            var valueFromDb = values[i];
+            var value = MapFromDatabaseValue(valueFromDb, column.Type());
             var property = column.Property();
-            property.SetValue(element, value);
-            i += 1;
+            try
+            {
+                property.SetValue(element, value);
+            }
+            catch (TargetException ex)
+            {
+                throw new DatabaseException($"Error getting element by key", ex);
+            }
+            i++;
         }
-
-        return element;
-
-    }
-
-    private object MapToValue(int index, Type type)
-    {
-        if (PostgresqlDefaultSettings.TypeReaders.TryGetValue(type, out var func))
+        // additional fields
+        var additionalFields = reflection.AdditionalFields().ToList();
+        foreach (var column in additionalFields)
         {
-            return func(reader, index);
+            var valueFromDb = values[i];
+            var value = MapFromDatabaseValue(valueFromDb, column.Type());
+            var property = column.Property();
+            try
+            {
+                property.SetValue(element, value);
+            }
+            catch (TargetException ex)
+            {
+                throw new DatabaseException($"Error getting element by key", ex);
+            }
+            i++;
         }
-        throw new NotSupportedException($"Type {type} is not supported.");
+        return element;
     }
-    
+
+    public IDatabaseObject MapFromModelToDatabase(IDatabaseObject element)
+    {
+        throw new NotImplementedException();
+    }
+
+    public IDatabaseObjectTableElement MapFromModelToDatabase(ITableReflection connectedTableReflection, IDatabaseObjectTableElement element)
+    {
+        throw new NotImplementedException();
+    }
+
+    public object MapToDatabaseValue(object? value, Type type)
+    {
+        if (value == null)
+            return DBNull.Value;
+
+        if (DefaultTypes.ContainsKey(type))
+        {
+            return value;
+        }
+        else if (value.GetType() == typeof(ICollection) || value.GetType().GetInterface(typeof(ICollection).FullName!) != null)
+        {
+            ICollection list = (value as ICollection)!;
+            object?[] values = new object?[list.Count];
+            int i = 0;
+            foreach (var item in list)
+            {
+                values[i] = MapToDatabaseValue(item, type);
+                i++;
+            }
+            return values;
+        }
+        else if (type.IsEnum)
+        {
+            return (int)value;
+        }
+        else if (type == typeof(ITranslatable) || type.GetInterface(typeof(ITranslatable).FullName!) != null)
+        {
+            return ((ITranslatable) value).GetId(); 
+        }
+        else
+        {
+           throw new ReflectionException("Cannot convert value of type " + value.GetType() + " to type " + type); // TODO not reflection exception 
+        }
+        
+    }
+
+    public object? MapFromDatabaseValue(object? value, Type type)
+    {
+        if (value == null)
+            return null;
+        
+        if (DefaultTypes.ContainsKey(type))
+        {
+            return Convert.ChangeType(value, type);
+        }
+        else if (type.IsEnum)
+        {
+            return Enum.ToObject(type, value);
+        } else if (type == typeof(ITranslatable) || type.GetInterface(typeof(ITranslatable).FullName!) != null)
+        {
+            return new Translatable((Guid) value!);
+        }
+        else
+        {
+            throw new NotSupportedException($"Type {type} is not supported.");
+        }
+    }
 }

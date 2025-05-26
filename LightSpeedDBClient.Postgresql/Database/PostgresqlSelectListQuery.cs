@@ -15,12 +15,14 @@ public class PostgresqlSelectListQuery<T>: IQuery where T : IDatabaseElement
     private readonly bool _usePagination;
     private readonly QueryParameters _parameters;
     private readonly IFilters<T> _filters;
+    private readonly IMapper _mapper;
     
-    public PostgresqlSelectListQuery(IFilters<T> filters, DatabaseObjectReflection reflection, int? page = null, int? limit = null)
+    public PostgresqlSelectListQuery(IFilters<T> filters, DatabaseObjectReflection reflection, IMapper mapper, int? page = null, int? limit = null)
     {
         _reflection = reflection;
         _page = page;
         _limit = limit;
+        _mapper = mapper;
 
         if (_page <= 0)
             throw new PageValueException($"Page value should be more then 0.");
@@ -168,6 +170,7 @@ public class PostgresqlSelectListQuery<T>: IQuery where T : IDatabaseElement
             {
                 var value = filter.Value();
                 var type = filter.Type();
+                value = _mapper.MapToDatabaseValue(value, type);
                 string parameterName = _parameters.Add(type, value);
                 
                 sb.Append($"{filter.Column().Table().QueryName()}.{filter.Column().QueryName()}");
@@ -198,6 +201,7 @@ public class PostgresqlSelectListQuery<T>: IQuery where T : IDatabaseElement
                 var filter = mainTableFilters[i];
                 var value = filter.Value();
                 var type = filter.Type();
+                value = _mapper.MapToDatabaseValue(value, type);
                 string parameterName = _parameters.Add(type, value);
                 sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (i < mainTableFilters.Count - 1)
@@ -305,6 +309,7 @@ public class PostgresqlSelectListQuery<T>: IQuery where T : IDatabaseElement
                 var filter = filters[i];
                 var value = filter.Value();
                 var type = filter.Type();
+                value = _mapper.MapToDatabaseValue(value, type);
                 string parameterName = _parameters.Add(type, value);
                 sb.Append($"{_reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                 if (i < filters.Count - 1)

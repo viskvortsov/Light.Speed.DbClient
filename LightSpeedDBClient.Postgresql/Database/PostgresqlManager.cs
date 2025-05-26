@@ -6,11 +6,14 @@ using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Implementations;
 using LightSpeedDbClient.Models;
 using LightSpeedDbClient.Reflections;
+using Npgsql;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
 public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 {
+
+    private static IMapper _mapper = new PostgresqlMapper(Reflection.MainTableReflection);
     
     public PostgresqlManager(IConnection connection) : base(connection){}
     
@@ -25,7 +28,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         
         var elements = new List<T>();
         
-        PostgresqlSelectListQuery<T> selectListQuery = new PostgresqlSelectListQuery<T>(filters, Reflection, page, limit);
+        PostgresqlSelectListQuery<T> selectListQuery = new PostgresqlSelectListQuery<T>(filters, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -37,8 +40,9 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
+            List<object?> values = GetAllValues(reader, Reflection.MainTableReflection);
             T element = CreateReference();
-            element = (T) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
+            element = (T) _mapper.MapFromDatabaseToModel(element, values);
             elements.Add(element);
         }
 
@@ -55,7 +59,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
     {
         Dictionary<IKey, T> elements = new ();
         
-        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, Reflection, page, limit);
+        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -67,8 +71,9 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         await using var reader = await cmd.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
+            List<object?> values = GetAllValues(reader, Reflection.MainTableReflection);
             T element = CreateObject();
-            element = (T) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(element);
+            element = (T) _mapper.MapFromDatabaseToModel(element, values);
             elements.Add(element.Key(), element);
         }
         foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
@@ -78,10 +83,10 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                 List<IDatabaseObjectTableElement> list = new ();
                 while (await reader.ReadAsync())
                 {
+                    List<object?> values = GetAllValues(reader, connectedTable.TableReflection());
                     IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
-                    row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
+                    row = _mapper.MapFromDatabaseToModel(connectedTable.TableReflection(), row, values);
                     list.Add(row);
-                    // TODO how to sort them to elements?
                 }
                     
                 foreach (var row in list)
@@ -135,7 +140,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
         T? receivedElement = default(T);
         
-        PostgresqlSelectByKeyQuery selectByKeyQuery = new (Reflection, key);
+        PostgresqlSelectByKeyQuery selectByKeyQuery = new (Reflection, key, _mapper);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -150,8 +155,9 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             await using var reader = await cmd.ExecuteReaderAsync();
             if (await reader.ReadAsync())
             {
+                List<object?> values = GetAllValues(reader, Reflection.MainTableReflection);
                 receivedElement = CreateObject();
-                receivedElement = (T) new PostgresqlMapper(Reflection.MainTableReflection, reader).MapToModel(receivedElement);
+                receivedElement = (T) _mapper.MapFromDatabaseToModel(receivedElement, values);
             }
 
             if (receivedElement == null)
@@ -166,8 +172,9 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                     List<IDatabaseObjectTableElement> list = new ();
                     while (await reader.ReadAsync())
                     {
+                        List<object?> values = GetAllValues(reader, connectedTable.TableReflection());
                         IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
-                        row = new PostgresqlMapper(connectedTable.TableReflection(), reader).MapToModel(row);
+                        row = _mapper.MapFromDatabaseToModel(connectedTable.TableReflection(), row, values);
                         list.Add(row);
                     }
                     ConvertToTable(connectedTable.Property(), receivedElement, list);
@@ -185,7 +192,6 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             throw new DatabaseException($"Error getting element by key", e);
         }
         
-        
         if (receivedElement == null)
             throw new DatabaseNotFoundException($"Error saving element");
 
@@ -198,7 +204,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         
         // TODO Check that all elements are objects
    
-        PostgresqlSaveQuery<T> saveQuery = new (Reflection, element);
+        PostgresqlSaveQuery<T> saveQuery = new (Reflection, element, _mapper);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -238,7 +244,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         PostgresqlBatch batch = new PostgresqlBatch((PostgresqlConnection)Connection, transaction);
         foreach (var chunk in chunks)
         {
-            PostgresqlSaveManyQueries<T> saveQuery = new (Reflection, chunk);
+            PostgresqlSaveManyQueries<T> saveQuery = new (Reflection, chunk, _mapper);
             foreach (var subQuery in saveQuery.GetQueries())
             {
                 PostgresqlBatchCommand cmd = new PostgresqlBatchCommand(subQuery);
@@ -316,7 +322,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
     
     public override async Task<int> DeleteAsync(IFilters<T> filters)
     {
-        PostgresqlDeleteListQuery<T> selectListQuery = new PostgresqlDeleteListQuery<T>(filters, Reflection);
+        PostgresqlDeleteListQuery<T> selectListQuery = new PostgresqlDeleteListQuery<T>(filters, Reflection, _mapper);
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
         {
@@ -340,6 +346,23 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             throw new ReflectionException($"Constructor not found for type {property.PropertyType.Name}");
         property.SetValue(element, constructor.Invoke([list]));
         
+    }
+
+    private List<object?> GetAllValues(NpgsqlDataReader reader, ITableReflection reflection)
+    {
+        List<object?> values = new();
+        int i = 0;
+        foreach (IColumnReflection column in reflection.Columns())
+        {
+            values.Add(reader.GetValue(i));
+            i += 1;
+        }
+        foreach (IColumnReflection column in reflection.AdditionalFields())
+        {
+            values.Add(reader.GetValue(i));
+            i += 1;
+        }
+        return values;
     }
     
 }

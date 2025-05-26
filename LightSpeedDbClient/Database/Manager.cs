@@ -10,8 +10,8 @@ public abstract class Manager<T>(IConnection connection, ITransaction? transacti
 {
     protected readonly IConnection Connection = connection;
     protected readonly ITransaction? Transaction = transaction;
-    protected readonly DatabaseObjectReflection Reflection = ClientSettings.GetReflection(typeof(T));
-
+    protected static readonly DatabaseObjectReflection Reflection = ClientSettings.GetReflection(typeof(T));
+    
     public T CreateObject()
     {
         ConstructorInfo? constructor = ClientSettings.GetConstructor(typeof(T));

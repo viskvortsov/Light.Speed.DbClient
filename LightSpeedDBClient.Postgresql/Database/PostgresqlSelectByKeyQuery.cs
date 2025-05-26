@@ -6,7 +6,7 @@ using LightSpeedDbClient.Reflections;
 
 namespace LightSpeedDBClient.Postgresql.Database;
 
-public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKey key) : IQuery
+public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKey key, IMapper mapper) : IQuery
 {
     private readonly QueryParameters _parameters = new ();
 
@@ -104,6 +104,7 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             var keyPart = keyElements[i];
             object? value = keyPart.Value();
             Type type = keyPart.Type();
+            value = mapper.MapToDatabaseValue(value, type);
             string parameterName = _parameters.Add(type, value);
             sb.Append($"{reflection.MainTableReflection.QueryName()}.{keyPart.Column().QueryName()} = {parameterName}");
             if (i < keyElements.Count - 1)
@@ -202,6 +203,7 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             IKeyElement partOfKey = key.KeyElements().First(element => element.Column().Name() == keyPart.Relation());
             var value = partOfKey.Value();
             var type = partOfKey.Type();
+            value = mapper.MapToDatabaseValue(value, type);
             string parameterName =_parameters.Add(type, value);
             sb.Append($"{connectedTable.QueryName()}.{keyPart.QueryName()} = {parameterName}");
             if (i < ownerKeys.Count - 1)

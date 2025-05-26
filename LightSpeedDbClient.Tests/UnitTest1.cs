@@ -340,10 +340,10 @@ public class Tests
         type2.Name.AddTranslation(spanishMock, "Servicio");
         
         ProductType type3 = manager.CreateObject();
-        type2.Id = ProductType.Value.Empty;
-        type2.Name = new Translatable();
-        type2.Name.AddTranslation(englishMock, "Empty");
-        type2.Name.AddTranslation(spanishMock, "Vacío");
+        type3.Id = ProductType.Value.Empty;
+        type3.Name = new Translatable();
+        type3.Name.AddTranslation(englishMock, "Empty");
+        type3.Name.AddTranslation(spanishMock, "Vacío");
 
         await manager.SaveManyAsync([type2, type3]);
       

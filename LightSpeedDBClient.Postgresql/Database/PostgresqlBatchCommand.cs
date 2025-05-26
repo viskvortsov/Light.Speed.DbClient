@@ -1,5 +1,4 @@
 using LightSpeedDbClient.Database;
-using LightSpeedDbClient.Exceptions;
 using Npgsql;
 using NpgsqlTypes;
 
@@ -21,16 +20,10 @@ internal class PostgresqlBatchCommand
         {
             
             string name = parameter.Name();
-            
             object value = parameter.Value() ?? DBNull.Value;
 
             Type type = parameter.Type();
-            PostgresqlDefaultSettings.DefaultTypes.TryGetValue(type, out NpgsqlDbType sqlType);
-            if (sqlType == null)
-            {
-                throw new TypeMappingException($"Incompatible type {type} for parameter {name}.");
-            }
-            
+            NpgsqlDbType sqlType = PostgresqlDefaultSettings.GetSqlDbType(type);
             InnerCommand.Parameters.AddWithValue(name, sqlType, value);
             
         }
