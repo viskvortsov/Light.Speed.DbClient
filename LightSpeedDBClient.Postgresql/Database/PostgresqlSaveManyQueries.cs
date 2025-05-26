@@ -175,6 +175,8 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
                 if (ownerColumn == null)
                     throw new ModelSetupException($"Owner column is null for column {keyPart.QueryName()}");
                 object? value = ownerColumn.Property().GetValue(element);
+                Type type = ownerColumn.Type();
+                value = mapper.MapToDatabaseValue(value, type);
                 string parameterName = parameters.Add(ownerColumn.Type(), value);
                 sb.Append($"{parameterName}");
                 if (index2 < partsOfOwnerKey.Count - 1)
@@ -227,7 +229,10 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
                 sb.Append($"(");
                 foreach (var column in connectedTableColumns)
                 {
-                    string parameterName = parameters.Add(column.Type(), column.Property().GetValue(row));
+                    Type type = column.Type();
+                    object? value = column.Property().GetValue(row);
+                    value = mapper.MapToDatabaseValue(value, type);
+                    string parameterName = parameters.Add(type, value);
                     sb.Append($"{parameterName}");
                     if (index3 < connectedTableColumns.Count - 1)
                         sb.Append(",");

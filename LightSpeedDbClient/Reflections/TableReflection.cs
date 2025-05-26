@@ -116,6 +116,16 @@ public class TableReflection : ITableReflection
                 }
                 _connectedTables.Add(columnReflection);
             }
+            TranslationsTableAttribute? translationsTable = property.GetCustomAttribute<TranslationsTableAttribute>();
+            if (translationsTable != null)
+            {
+                ColumnReflection columnReflection = new(property, this);
+                if (_connectedTables.Contains(columnReflection))
+                {
+                    throw new ReflectionException($"Model {_type.Name} has multiple tables with the same name {columnReflection.Name()}");
+                }
+                _connectedTables.Add(columnReflection);
+            }
         }
         
     }
