@@ -14,7 +14,6 @@ public class DatabaseObjectReflection
     {
         _mainTableReflection = new TableReflection(type);
         _connectedTables = new ConnectedTables(type);
-
         foreach (var table in _connectedTables)
         {
             foreach (var column in table.TableReflection().PartsOfOwnerKey())
@@ -25,7 +24,6 @@ public class DatabaseObjectReflection
                 _ = GetPrimaryKeyPart(relation);
             }
         }
-        
     }
     
     public IColumnReflection GetColumnReflection(string name)

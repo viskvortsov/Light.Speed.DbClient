@@ -1,4 +1,5 @@
 using System.Reflection;
+using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Models;
@@ -10,6 +11,9 @@ public abstract class DatabaseObject : IDatabaseObject
 {
     private readonly DatabaseObjectReflection _reflection;
     private readonly ModelType _modelType;
+    
+    [TranslationsTable]
+    public DatabaseObjectTable<TranslationRow> Translations { get; set; }
 
     protected DatabaseObject(ModelType modelType)
     {
@@ -76,4 +80,5 @@ public abstract class DatabaseObject : IDatabaseObject
     }
     public abstract void BeforeSave();
     public abstract void AfterSave();
+    
 }

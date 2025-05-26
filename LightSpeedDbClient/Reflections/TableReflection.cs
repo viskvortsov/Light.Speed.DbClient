@@ -11,10 +11,27 @@ public class TableReflection : ITableReflection
     private readonly string _queryName;
     private readonly Type _type;
     
+    private readonly bool _isTranslatable;
+    private readonly string _translationsTableName;
+    
     private readonly List<IColumnReflection> _columns;
     private readonly List<IColumnReflection> _additionalFields = new();
     private readonly List<IColumnReflection> _connectedTables;
 
+    public TableReflection(Type type, String queryName)
+    {
+        
+        _columns = new List<IColumnReflection>();
+        _connectedTables = new List<IColumnReflection>();
+        _type = type;
+        _name = type.Name.ToLower();
+        _queryName = queryName;
+        
+        FillColumns();
+        FillTables();
+        FillAdditionalFields();
+
+    }
     
     public TableReflection(Type type)
     {
@@ -27,6 +44,13 @@ public class TableReflection : ITableReflection
         ModelAttribute? model = _type.GetCustomAttribute<ModelAttribute>();
         if (model == null)
             throw new ClassIsNotAModelException($"Model not found for {_type.Name}");
+        
+        TranslatableTableAttribute? translatable = _type.GetCustomAttribute<TranslatableTableAttribute>();
+        _isTranslatable = translatable != null;
+        if (_isTranslatable)
+        {
+            _translationsTableName = translatable!.Table;
+        }
 
         _queryName = model.Table;
 
@@ -106,9 +130,19 @@ public class TableReflection : ITableReflection
         return _queryName;
     }
 
+    public string TranslationsTableName()
+    {
+        return _translationsTableName;
+    }
+
     public Type Type()
     {
         return _type;
+    }
+
+    public bool IsTranslatable()
+    {
+        return _isTranslatable;
     }
 
     public IEnumerable<IColumnReflection> Columns()

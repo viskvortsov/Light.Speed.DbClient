@@ -17,7 +17,6 @@ public class Products : DatabaseObject
     public Guid Id { get; set; }
     
     [Column(name: "name")]
-    [TranslatableColumn]
     public ITranslatable Name { get; set; }
     
     [Column(name: "product_type_id")]

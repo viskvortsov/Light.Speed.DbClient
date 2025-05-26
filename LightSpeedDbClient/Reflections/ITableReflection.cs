@@ -5,7 +5,9 @@ public interface ITableReflection
 
     string Name();
     string QueryName();
+    string TranslationsTableName();
     Type Type();
+    bool IsTranslatable();
     IEnumerable<IColumnReflection> Columns();
     IEnumerable<IColumnReflection> PartsOfPrimaryKey();
     IEnumerable<IColumnReflection> PartsOfOwnerKey();

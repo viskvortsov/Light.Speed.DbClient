@@ -17,9 +17,8 @@ public class ProductType : DatabaseObject
     public ProductType.Value Id { get; set; }
     
     [Column(name: "name")]
-    [TranslatableColumn]
     public ITranslatable Name { get; set; }
-
+    
     public override void BeforeSave(){}
 
     public override void AfterSave(){}

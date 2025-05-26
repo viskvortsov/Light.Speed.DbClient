@@ -32,12 +32,11 @@ public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectRef
     {
         return _parameters;
     }
-
+    
     private string MainRowDeleteQuery()
     {
         
         // TODO Add connected tables filter
-        
         StringBuilder sb = new StringBuilder();
         sb.Append($"DELETE");
         sb.Append($" ");

@@ -11,7 +11,6 @@ public class Attribute
     public Guid Id { get; set; }
     
     [Column(name: "name")]
-    [TranslatableColumn]
     public ITranslatable Name { get; set; }
     
 }

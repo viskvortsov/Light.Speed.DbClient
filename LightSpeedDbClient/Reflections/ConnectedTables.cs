@@ -8,7 +8,7 @@ namespace LightSpeedDbClient.Reflections;
 public class ConnectedTables : IConnectedTables
 {
     
-    private readonly Dictionary<string, ConnectedTable> _tables;
+    private readonly Dictionary<string, IConnectedTable> _tables;
 
     public ConnectedTables(Type type)
     {
@@ -17,7 +17,7 @@ public class ConnectedTables : IConnectedTables
         if (model == null)
             throw new ClassIsNotAModelException($"Model not found for type {type.Name}");
 
-        _tables = new Dictionary<string, ConnectedTable>();
+        _tables = new Dictionary<string, IConnectedTable>();
         
         PropertyInfo[] properties = type.GetProperties();
         foreach (var property in properties)
@@ -34,6 +34,15 @@ public class ConnectedTables : IConnectedTables
             }
         }
         
+        TranslatableTableAttribute? translatable = type.GetCustomAttribute<TranslatableTableAttribute>();
+        if (translatable != null)
+        {
+            PropertyInfo? property = type.GetProperty("Translations");
+            if (property == null)
+                throw new ReflectionException("Translations property not found"); // TODO
+            TranslationsTable connectedTable = new TranslationsTable(property, translatable.Table);
+            _tables.Add(connectedTable.Name(), connectedTable);
+        }
         
     }
 
