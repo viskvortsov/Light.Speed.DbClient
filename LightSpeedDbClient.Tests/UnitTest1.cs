@@ -312,4 +312,46 @@ public class Tests
 
     }
     
+    [Test]
+    public async Task TestTranslatable()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<ProductType> manager = new PostgresqlManager<ProductType>(connection, transaction);
+        await manager.DeleteAsync();
+        
+        Guid englishMock = Guid.NewGuid();
+        Guid spanishMock = Guid.NewGuid();
+
+        ProductType type1 = manager.CreateObject();
+        type1.Id = ProductType.Value.Product;
+        type1.Name = new Translatable();
+        type1.Name.AddTranslation(englishMock, "Product");
+        type1.Name.AddTranslation(spanishMock, "Producto");
+
+        await manager.SaveAsync(type1);
+        
+        ProductType type2 = manager.CreateObject();
+        type2.Id = ProductType.Value.Service;
+        type2.Name = new Translatable();
+        type2.Name.AddTranslation(englishMock, "Service");
+        type2.Name.AddTranslation(spanishMock, "Servicio");
+        
+        ProductType type3 = manager.CreateObject();
+        type2.Id = ProductType.Value.Empty;
+        type2.Name = new Translatable();
+        type2.Name.AddTranslation(englishMock, "Empty");
+        type2.Name.AddTranslation(spanishMock, "Vacío");
+
+        await manager.SaveManyAsync([type2, type3]);
+      
+        await transaction.CommitAsync();
+
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
 }

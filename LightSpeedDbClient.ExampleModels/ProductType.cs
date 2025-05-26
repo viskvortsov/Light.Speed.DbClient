@@ -26,8 +26,9 @@ public class ProductType : DatabaseObject
     
     public enum Value
     {
-        Product = 0,
-        Service = 1,
+        Empty = 0,
+        Product = 1,
+        Service = 2,
     }
     
 }
