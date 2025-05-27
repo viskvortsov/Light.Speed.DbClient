@@ -115,6 +115,11 @@ public class ColumnReflection : IColumnReflection
         return _queryName;
     }
 
+    public string TranslationsQueryName()
+    {
+        return $"{_queryName}_translations";
+    }
+
     public Type Type()
     {
         return _type;

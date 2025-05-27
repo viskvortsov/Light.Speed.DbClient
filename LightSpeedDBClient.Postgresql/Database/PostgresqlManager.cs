@@ -153,7 +153,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
     
     public override async Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null)
     {
-        return await GetListObjectsAsync(new Filters<T>(), new Sorting<T>(), page, limit);
+        return await GetListObjectsAsync(filters, new Sorting<T>(), page, limit);
     }
     
     public override async Task<IEnumerable<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null, int? limit = null)
@@ -387,6 +387,16 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             values.Add(reader.GetValue(i));
             i += 1;
+        }
+        var translatableFields = reflection.TranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                continue;
+            }
+            values.Add(reader.GetValue(i));
+            i++;
         }
         return values;
     }

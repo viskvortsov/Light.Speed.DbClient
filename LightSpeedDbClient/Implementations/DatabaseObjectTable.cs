@@ -98,7 +98,7 @@ public class DatabaseObjectTable<T> : IDatabaseObjectTable where T : IDatabaseOb
 
     public object? this[int index]
     {
-        get => throw new NotImplementedException();
-        set => throw new NotImplementedException();
+        get => _elements[index];
+        set => _elements[index] = (T) value;
     }
 }

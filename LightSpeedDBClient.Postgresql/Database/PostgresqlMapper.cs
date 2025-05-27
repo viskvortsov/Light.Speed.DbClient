@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Reflection;
+using System.Text.Json;
 using LightSpeedDbClient.Exceptions;
 using LightSpeedDbClient.Implementations;
 using LightSpeedDbClient.Models;
@@ -104,7 +105,37 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             }
             i++;
         }
+        var translatableFields = connectedTableReflection.TranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                continue;
+            }
+            var valueFromDb = values[i];
+            var value = MapFromJson(valueFromDb);
+            ITranslatable translatable = (ITranslatable) translatableField.Property().GetValue(element);
+            foreach (var translation in value)
+            {
+                translatable!.AddTranslation(translation.language_id, translation.content);
+            }
+            var property = translatableField.Property();
+            try
+            {
+                property.SetValue(element, translatable);
+            }
+            catch (TargetException ex)
+            {
+                throw new DatabaseException($"Error getting element by key", ex);
+            }
+            i++;
+        }
         return element;
+    }
+
+    private TranslationsJson[] MapFromJson(object? value)
+    {
+        return JsonSerializer.Deserialize<TranslationsJson[]>(value.ToString()!);
     }
 
     public IDatabaseObject MapFromModelToDatabase(IDatabaseObject element)

@@ -7,6 +7,7 @@ public interface IColumnReflection
 {
     string Name();
     string QueryName();
+    string TranslationsQueryName();
     Type Type();
     string? Relation();
     PropertyInfo Property();
