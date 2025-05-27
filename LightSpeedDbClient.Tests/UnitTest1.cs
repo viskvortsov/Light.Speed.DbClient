@@ -2,7 +2,9 @@ using ExampleModels;
 using ExampleModels.Currencies;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Implementations;
+using LightSpeedDbClient.Models;
 using LightSpeedDBClient.Postgresql.Database;
+using Attribute = System.Attribute;
 
 namespace LightSpeedDbClient.Tests;
 
@@ -321,6 +323,8 @@ public class Tests
 
         IManager<ProductType> manager = new PostgresqlManager<ProductType>(connection, transaction);
         await manager.DeleteAsync();
+        IManager<Product> productManager0 = new PostgresqlManager<Product>(connection, transaction);
+        await productManager0.DeleteAsync();
         
         Guid englishMock = Guid.NewGuid();
         Guid spanishMock = Guid.NewGuid();
@@ -371,8 +375,68 @@ public class Tests
         Assert.That(productType3.Name.GetTranslation(englishMock), Is.EqualTo("Empty"));
         Assert.That(productType3.Name.GetTranslation(spanishMock), Is.EqualTo("Vacío"));
         
+        IEnumerable<ProductType> productTypes2 = await manager.GetListObjectsAsync(1, 100);
+        var list2 = productTypes.ToList();
+        
+        var productType4 = list2[0];
+        Assert.That(productType4.Id, Is.EqualTo(ProductType.Value.Product));
+        Assert.That(productType4.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType4.Name.GetTranslation(englishMock), Is.EqualTo("Product"));
+        Assert.That(productType4.Name.GetTranslation(spanishMock), Is.EqualTo("Producto"));
+        
+        var productType5 = list2[1];
+        Assert.That(productType5.Id, Is.EqualTo(ProductType.Value.Service));
+        Assert.That(productType5.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType5.Name.GetTranslation(englishMock), Is.EqualTo("Service"));
+        Assert.That(productType5.Name.GetTranslation(spanishMock), Is.EqualTo("Servicio"));
+        
+        var productType6 = list2[2];
+        Assert.That(productType6.Id, Is.EqualTo(ProductType.Value.Empty));
+        Assert.That(productType6.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType6.Name.GetTranslation(englishMock), Is.EqualTo("Empty"));
+        Assert.That(productType6.Name.GetTranslation(spanishMock), Is.EqualTo("Vacío"));
+        
         await transaction.CommitAsync();
+        
+        ITransaction transaction2 = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction2);
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        attribute.Name.AddTranslation(englishMock, "Type");
+        attribute.Name.AddTranslation(spanishMock, "typo");
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction2);
+        Product product = productManager.CreateObject();
+        product.Id = Guid.NewGuid();
+        product.Name = new Translatable();
+        product.Name.AddTranslation(englishMock, "Product 1");
+        product.Name.AddTranslation(spanishMock, "Producto 1");
+        product.ProductType = ProductType.Value.Product;
 
+        ITranslatable value = new Translatable();
+        value.AddTranslation(englishMock, "Fire!");
+        AttributeRow row = new AttributeRow
+        {
+            Id = Guid.NewGuid(),
+            OwnerId = product.Id,
+            Attribute = attribute.Id,
+            Value = value,
+        };
+        product.Attributes = new DatabaseObjectTable<AttributeRow>();
+        product.Attributes.Add(row);
+        
+        await productManager.SaveAsync(product);
+        
+        await transaction.CommitAsync();
+        
+        IEnumerable<Product> products = await productManager.GetListAsync(1, 100);
+        var list3 = products.ToList();
+        
+        var product1 = list3[0];
+        Assert.That(product1.Name.AllTranslations().Count, Is.EqualTo(2));
+        
         await transaction.DisposeAsync();
         await db.DisposeAsync();
 

@@ -88,7 +88,7 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             i++;
         }
         // additional fields
-        var additionalFields = reflection.AdditionalFields().ToList();
+        var additionalFields = connectedTableReflection.AdditionalFields().ToList();
         foreach (var column in additionalFields)
         {
             var valueFromDb = values[i];
@@ -182,7 +182,9 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             return Enum.ToObject(type, value);
         } else if (type == typeof(ITranslatable) || type.GetInterface(typeof(ITranslatable).FullName!) != null)
         {
-            return new Translatable((Guid) value!);
+            if (value == DBNull.Value)
+                value = Guid.NewGuid();
+            return new Translatable((Guid) value);
         }
         else if (type == typeof(TranslationRow.TranslationKey))
         {

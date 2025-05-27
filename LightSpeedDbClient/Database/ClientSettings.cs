@@ -52,11 +52,11 @@ public static class ClientSettings
 
             foreach (var connectedTable in reflection.ConnectedTables())
             {
-                ConnectedTablesReflections.Add(connectedTable.TableReflection().Type(), connectedTable.TableReflection());
+                ConnectedTablesReflections.TryAdd(connectedTable.TableReflection().Type(), connectedTable.TableReflection());
             }
             foreach (var connectedTable in reflection.TranslationTables())
             {
-                ConnectedTablesReflections.Add(connectedTable.TableReflection().Type(), connectedTable.TableReflection());
+                ConnectedTablesReflections.TryAdd(connectedTable.TableReflection().Type(), connectedTable.TableReflection());
             }
             
             return reflection;

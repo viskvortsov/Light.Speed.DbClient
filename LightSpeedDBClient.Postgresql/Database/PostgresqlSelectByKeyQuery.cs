@@ -24,6 +24,13 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             sb.Append(" ");
         }
         
+        List<IConnectedTable> translationTables = reflection.TranslationTables().ToList();
+        foreach (var connectedTable in translationTables)
+        {
+            sb.Append(ConnectedTableSelectQuery(connectedTable));
+            sb.Append(" ");
+        }
+        
         return sb.ToString();
     }
 
@@ -133,7 +140,7 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
         }
         
         // additional fields
-        var columnsWithForeignKey = reflection.MainTableReflection.ColumnsWithForeignKey();
+        var columnsWithForeignKey = connectedTable.TableReflection().ColumnsWithForeignKey();
         Dictionary<IColumnReflection, IColumnReflection> allAdditionalFields = new ();
         var withForeignKey = columnsWithForeignKey.ToList();
         foreach (var column in withForeignKey)
@@ -141,7 +148,7 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             string? foreignKeyName = column.ForeignKeyName();
             if (foreignKeyName == null)
                 throw new ReflectionException($"Foreign key name not found for {column.Name()}");
-            foreach (IColumnReflection additionalField in reflection.MainTableReflection.ColumnsWithAdditionalInfo(foreignKeyName))
+            foreach (IColumnReflection additionalField in connectedTable.TableReflection().ColumnsWithAdditionalInfo(foreignKeyName))
             {
                 allAdditionalFields.Add(additionalField, column);
             }
@@ -189,7 +196,7 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             sb.Append(" ");
             sb.Append("=");
             sb.Append(" ");
-            sb.Append($"{reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+            sb.Append($"{connectedTable.TableReflection().QueryName()}.{column.QueryName()}");
         }
         
         sb.Append($" ");
