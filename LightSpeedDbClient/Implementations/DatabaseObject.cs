@@ -33,6 +33,18 @@ public abstract class DatabaseObject : IDatabaseObject
             if (property == null)
                 throw new ReflectionException($"Property not found for column {primaryKeyElement.Name()}");
             object? value = property.GetValue(this);
+            if (value != null && value.GetType() == typeof(TranslationRow.TranslationKey))
+            {
+                TranslationRow.TranslationKey key = ((TranslationRow.TranslationKey) value);
+                if (key.IsGuid)
+                {
+                    value = key.GuidId;
+                }
+                else if (key.IsInt)
+                {
+                    value = key.IntId;
+                }
+            }
             keyElements.Add(new KeyElement(primaryKeyElement, value));
         }
         return new Key(keyElements);
@@ -78,7 +90,50 @@ public abstract class DatabaseObject : IDatabaseObject
     {
         return _modelType == Models.ModelType.Row;
     }
-    public abstract void BeforeSave();
-    public abstract void AfterSave();
-    
+
+    public void BeforeSave()
+    {
+        
+        // TODO current implementation only supports objects with Guid or Int as primary key
+        IEnumerable<IColumnReflection> partsOfPrimaryKey = _reflection.MainTableReflection.PartsOfPrimaryKey();
+        if (partsOfPrimaryKey.Count() != 1)
+            throw new ReflectionException("Only objects with a single primary key column are supported");
+        
+        object? key = _reflection.MainTableReflection.PartsOfPrimaryKey().First().Property().GetValue(this);
+        if (!(key is Guid) && !(key.GetType().IsEnum))
+            throw new ReflectionException("Only objects with a single primary key column of type Guid or Int are supported");
+
+        Translations = new DatabaseObjectTable<TranslationRow>();
+        foreach (var column in _reflection.MainTableReflection.TranslatableColumns())
+        {
+            PropertyInfo property = column.Property();
+            Type type = property.PropertyType;
+            object? value = property.GetValue(this);
+            if (value == null) continue;
+            ITranslatable? translatable = (ITranslatable) value;
+            foreach (var translation in translatable.AllTranslations())
+            {
+                TranslationRow row = new TranslationRow();
+                row.SourceId = new TranslationRow.TranslationKey(key);
+                row.LanguageId = translation.Key;
+                row.ContentId = translatable.GetId();
+                row.Content = translation.Value;
+                Translations.Add(row);
+            }
+        }
+        
+    }
+
+    public void BeforeDelete()
+    {
+    }
+
+    public void BeforeGetReference()
+    {
+    }
+
+    public void BeforeGetObject()
+    {
+    }
+
 }

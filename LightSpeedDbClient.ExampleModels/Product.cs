@@ -6,9 +6,9 @@ namespace ExampleModels;
 
 [Model(table: "products")]
 [TranslatableTable(table: "products_translations")]
-public class Products : DatabaseObject
+public class Product : DatabaseObject
 {
-    public Products(ModelType modelType) : base(modelType)
+    public Product(ModelType modelType) : base(modelType)
     {
     }
 
@@ -30,15 +30,5 @@ public class Products : DatabaseObject
     public DatabaseObjectTable<ExchangeRateRow> Attributes { get; set; }
     
     public string SetBeforeSave { get; set; }
-    public string SetAfterSave { get; set; }
-
-    public override void BeforeSave()
-    {
-        SetBeforeSave = "I am set before save";
-    }
-
-    public override void AfterSave()
-    {
-        SetAfterSave = "I am set after save";
-    }
+    
 }

@@ -19,10 +19,6 @@ public class ProductType : DatabaseObject
     [Column(name: "name")]
     public ITranslatable Name { get; set; }
     
-    public override void BeforeSave(){}
-
-    public override void AfterSave(){}
-    
     public enum Value
     {
         Empty = 0,

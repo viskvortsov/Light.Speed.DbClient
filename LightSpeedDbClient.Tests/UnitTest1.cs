@@ -96,7 +96,7 @@ public class Tests
         IFilters<Currency> filters = manager.CreateFilters();
         filters.Add(new Filter<Currency>("name", ComparisonOperator.Equals, "Euro"));
         
-        IEnumerable<Currency> currencies3 = await manager.GetListAsync(filters,1, 100);
+        IEnumerable<Currency> currencies3 = await manager.GetListAsync(filters, 1, 100);
         Assert.NotNull(currencies3);
         Assert.That(currencies3.Count(), Is.EqualTo(5));
         
@@ -346,6 +346,11 @@ public class Tests
         type3.Name.AddTranslation(spanishMock, "Vacío");
 
         await manager.SaveManyAsync([type2, type3]);
+        
+        IEnumerable<ProductType> productTypes = await manager.GetListAsync(1, 100);
+        
+        Assert.NotNull(productTypes);
+        Assert.That(productTypes.Count(), Is.EqualTo(3));
       
         await transaction.CommitAsync();
 

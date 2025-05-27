@@ -195,7 +195,7 @@ public class PostgresqlSelectListQuery<T>: IQuery where T : IDatabaseElement
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<T>> mainTableFilters = _filters.MainTableFilters().ToList();
+            List<IFilter<T>> mainTableFilters = _filters.MainTableFilters().ToList();
             for (int i = 0; i < mainTableFilters.Count; i++)
             {
                 var filter = mainTableFilters[i];
@@ -303,7 +303,7 @@ public class PostgresqlSelectListQuery<T>: IQuery where T : IDatabaseElement
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<T>> filters = _filters.ToList();
+            List<IFilter<T>> filters = _filters.ToList();
             for (int i = 0; i < filters.Count; i++)
             {
                 var filter = filters[i];

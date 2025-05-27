@@ -40,7 +40,20 @@ public class KeyElement(IColumnReflection column, object? value) : IKeyElement
         bool columnNamesEqual = (_column.Name().Equals(other._column.Name()));
         
         if (!columnNamesEqual) return false;
-        
+
+        if (_value != null && other._value != null)
+        {
+            if (_value.GetType().IsEnum && other._value is int)
+            {
+                return ((int)_value).Equals(other._value);
+            }
+
+            if (_value.GetType() is int && other._value.GetType().IsEnum)
+            {
+                return _value.Equals((int)other._value);
+            }
+        }
+
         // Compare values
         return (_value == null && other._value == null) ||
                (_value != null && _value.Equals(other._value));

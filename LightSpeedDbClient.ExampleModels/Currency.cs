@@ -48,12 +48,4 @@ public class Currency : DatabaseObject
     [Table]
     public DatabaseObjectTable<CurrencyCodeRow> Codes { get; set; }
 
-    public override void BeforeSave()
-    {
-    }
-
-    public override void AfterSave()
-    {
-    }
-    
 }

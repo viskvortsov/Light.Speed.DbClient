@@ -6,6 +6,8 @@ public interface IDatabaseObject: IDatabaseElement
     IDatabaseObjectTable Table(string name);
     
     void BeforeSave();
-    void AfterSave();
+    void BeforeDelete();
+    void BeforeGetReference();
+    void BeforeGetObject();
 
 }

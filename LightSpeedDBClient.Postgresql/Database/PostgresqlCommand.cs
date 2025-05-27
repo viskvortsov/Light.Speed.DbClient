@@ -24,8 +24,8 @@ internal class PostgresqlCommand: IDisposable, IAsyncDisposable
             
             string name = parameter.Name();
             Type type = parameter.Type();
-            NpgsqlDbType sqlType = PostgresqlDefaultSettings.GetSqlDbType(type);
             object? value = parameter.Value();
+            NpgsqlDbType sqlType = PostgresqlDefaultSettings.GetSqlDbType(type, value);
             value = PostgresqlDefaultSettings.ConvertValue(value);
             _innerCommand.Parameters.AddWithValue(name, sqlType, value);
             

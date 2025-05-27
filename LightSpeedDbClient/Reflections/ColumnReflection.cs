@@ -2,6 +2,7 @@ using System.Reflection;
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Database;
 using LightSpeedDbClient.Exceptions;
+using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Reflections;
 
@@ -15,6 +16,7 @@ public class ColumnReflection : IColumnReflection
     private readonly PropertyInfo _property;
     private readonly bool _isPartOfPrimaryKey;
     private readonly bool _isPartOfOwnerKey;
+    private readonly bool _isTranslatable;
     
     private readonly List<IColumnReflection?> _additionalFields;
     private readonly string? _relation;
@@ -30,6 +32,7 @@ public class ColumnReflection : IColumnReflection
         _type = property.PropertyType;
         _property = property;
         _additionalFields = new List<IColumnReflection?>();
+        _isTranslatable = _type == typeof(ITranslatable) || _type.GetInterfaces().Contains(typeof(ITranslatable));
         
         ColumnAttribute? column = property.GetCustomAttribute<ColumnAttribute>();
         
@@ -140,6 +143,11 @@ public class ColumnReflection : IColumnReflection
     public bool HasAdditionalFields()
     {
         return _additionalFields.Count > 0;
+    }
+
+    public bool IsTranslatable()
+    {
+        return _isTranslatable;
     }
 
     public bool HasForeignKeyTable()

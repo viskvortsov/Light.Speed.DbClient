@@ -33,6 +33,8 @@ public abstract class Manager<T>(IConnection connection, ITransaction? transacti
         return new Filters<T>();
     }
 
+    
+
     protected object CreateRow(Type type)
     {
 
@@ -41,14 +43,19 @@ public abstract class Manager<T>(IConnection connection, ITransaction? transacti
             throw new ConstructorNotFoundException($"Constructor not found fot type {type.Name}");
         return constructor.Invoke([ModelType.Row]);
     }
-
-    public abstract Task<IEnumerable<T>>
-        GetListAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    
+    public abstract Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    public abstract Task<IEnumerable<T>> GetListAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
     public abstract Task<IEnumerable<T>> GetListAsync(int? page = null, int? limit = null);
-
-    public abstract Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null,
+    
+    public abstract Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null,
         int? limit = null);
-
+    
+    public abstract Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    public abstract Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy,
+        int? page = null, int? limit = null);
+    public abstract Task<IEnumerable<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null,
+        int? limit = null);
     public abstract Task<IEnumerable<T>> GetListObjectsAsync(int? page = null, int? limit = null);
 
     public abstract Task<int> CountAsync(IFilters<T> filters);

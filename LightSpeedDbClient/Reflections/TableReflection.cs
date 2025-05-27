@@ -16,6 +16,7 @@ public class TableReflection : ITableReflection
     
     private readonly List<IColumnReflection> _columns;
     private readonly List<IColumnReflection> _additionalFields = new();
+    private readonly List<IColumnReflection> _translatableColumns = new();
     private readonly List<IColumnReflection> _connectedTables;
 
     public TableReflection(Type type, String queryName)
@@ -30,6 +31,7 @@ public class TableReflection : ITableReflection
         FillColumns();
         FillTables();
         FillAdditionalFields();
+        FillTranslatableColumns();
 
     }
     
@@ -57,7 +59,8 @@ public class TableReflection : ITableReflection
         FillColumns();
         FillTables();
         FillAdditionalFields();
-
+        FillTranslatableColumns();
+        
     }
     
     private void FillColumns()
@@ -129,6 +132,24 @@ public class TableReflection : ITableReflection
         }
         
     }
+    
+    private void FillTranslatableColumns()
+    {
+        foreach (var column in _columns)
+        {
+            if (column.IsTranslatable())
+            {
+                _translatableColumns.Add(column);
+            }
+        }
+        foreach (var column in _additionalFields)
+        {
+            if (column.IsTranslatable())
+            {
+                _translatableColumns.Add(column);
+            }
+        }
+    }
 
     public string Name()
     {
@@ -158,6 +179,11 @@ public class TableReflection : ITableReflection
     public IEnumerable<IColumnReflection> Columns()
     {
         return _columns;
+    }
+
+    public IEnumerable<IColumnReflection> TranslatableColumns()
+    {
+        return _translatableColumns;
     }
 
     public IEnumerable<IColumnReflection> PartsOfPrimaryKey()

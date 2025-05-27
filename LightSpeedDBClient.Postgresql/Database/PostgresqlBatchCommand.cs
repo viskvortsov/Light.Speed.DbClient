@@ -23,7 +23,7 @@ internal class PostgresqlBatchCommand
             object value = parameter.Value() ?? DBNull.Value;
 
             Type type = parameter.Type();
-            NpgsqlDbType sqlType = PostgresqlDefaultSettings.GetSqlDbType(type);
+            NpgsqlDbType sqlType = PostgresqlDefaultSettings.GetSqlDbType(type, value);
             InnerCommand.Parameters.AddWithValue(name, sqlType, value);
             
         }

@@ -1,7 +1,7 @@
 using LightSpeedDbClient.Attributes;
 using LightSpeedDbClient.Models;
 
-namespace ExampleModels.Currencies;
+namespace ExampleModels;
 
 [Model(table: "attributes")]
 public class Attribute

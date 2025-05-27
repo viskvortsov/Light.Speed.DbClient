@@ -6,9 +6,9 @@ namespace LightSpeedDbClient.Database;
 public class Filters<T> : IFilters<T> where T : IDatabaseElement
 {
     
-    private readonly IList<Filter<T>> _filters = new List<Filter<T>>();
+    private readonly IList<IFilter<T>> _filters = new List<IFilter<T>>();
     
-    public void Add(Filter<T> filter)
+    public void Add(IFilter<T> filter)
     {
         _filters.Add(filter);
     }
@@ -35,7 +35,7 @@ public class Filters<T> : IFilters<T> where T : IDatabaseElement
         return filters;
     }
 
-    public IEnumerator<Filter<T>> GetEnumerator()
+    public IEnumerator<IFilter<T>> GetEnumerator()
     {
         return _filters.GetEnumerator();
     }

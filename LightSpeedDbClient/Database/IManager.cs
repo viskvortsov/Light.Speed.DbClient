@@ -20,8 +20,13 @@ public interface IManager<T> : IDisposable, IAsyncDisposable where T : IDatabase
     T CreateReference();
     IFilters<T> CreateFilters();
     Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null);
+    Task<IEnumerable<T>> GetListAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
     Task<IEnumerable<T>> GetListAsync(int? page = null, int? limit = null);
+    
     Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null);
+    Task<IEnumerable<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
     Task<IEnumerable<T>> GetListObjectsAsync(int? page = null, int? limit = null);
     Task<T> GetByKeyAsync(IKey key);
     Task<int> CountAsync(IFilters<T> filters);

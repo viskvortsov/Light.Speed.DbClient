@@ -1,3 +1,5 @@
+using LightSpeedDbClient.Models;
+
 namespace LightSpeedDbClient.Reflections;
 
 public interface ITableReflection
@@ -9,6 +11,7 @@ public interface ITableReflection
     Type Type();
     bool IsTranslatable();
     IEnumerable<IColumnReflection> Columns();
+    IEnumerable<IColumnReflection> TranslatableColumns();
     IEnumerable<IColumnReflection> PartsOfPrimaryKey();
     IEnumerable<IColumnReflection> PartsOfOwnerKey();
     IColumnReflection? GetColumnReflection(string name);

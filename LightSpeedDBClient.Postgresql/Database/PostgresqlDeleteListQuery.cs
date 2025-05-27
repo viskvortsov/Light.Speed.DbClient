@@ -47,9 +47,9 @@ public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectRef
             sb.Append($" ");
             sb.Append($"WHERE");
             sb.Append($" ");
-            List<Filter<T>> filters1 = filters.MainTableFilters().ToList();
+            List<IFilter<T>> filters1 = filters.MainTableFilters().ToList();
             int index1 = 0;
-            foreach (Filter<T> filter in filters1)
+            foreach (IFilter<T> filter in filters1)
             {
                 var value = filter.Value();
                 var type = filter.Type();
@@ -103,7 +103,7 @@ public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectRef
             
         if (filters.Any())
         {
-            List<Filter<T>> filters1 = filters.ToList();
+            List<IFilter<T>> filters1 = filters.ToList();
             int index4 = 0;
             foreach (Filter<T> filter in filters)
             {

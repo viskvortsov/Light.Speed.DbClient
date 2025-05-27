@@ -4,7 +4,7 @@ namespace LightSpeedDbClient.Implementations;
 
 public class Translatable(Guid id) : ITranslatable
 {
-    private readonly Dictionary<Guid, string?> _translations = new ();
+    private readonly Dictionary<Guid, string> _translations = new ();
 
     public Translatable() : this(Guid.NewGuid())
     {
@@ -28,6 +28,11 @@ public class Translatable(Guid id) : ITranslatable
     public Guid GetId()
     {
         return id;
+    }
+
+    public Dictionary<Guid, string> AllTranslations()
+    {
+        return _translations;
     }
     
 }

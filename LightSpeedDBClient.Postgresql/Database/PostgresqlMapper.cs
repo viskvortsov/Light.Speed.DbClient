@@ -74,7 +74,8 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
         foreach (IColumnReflection column in connectedTableReflection.Columns())
         {
             var valueFromDb = values[i];
-            var value = MapFromDatabaseValue(valueFromDb, column.Type());
+            var type = column.Type();
+            var value = MapFromDatabaseValue(valueFromDb, type);
             var property = column.Property();
             try
             {
@@ -145,11 +146,26 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
         {
             return ((ITranslatable) value).GetId(); 
         }
+        else if (type == typeof(TranslationRow.TranslationKey))
+        {
+            TranslationRow.TranslationKey key = (TranslationRow.TranslationKey) value!;
+            if (key.IsGuid)
+            {
+                return key.GuidId;
+            }
+            else if (key.IsInt)
+            {
+                return key.IntId;
+            }
+            else
+            {
+                throw new ReflectionException("Cannot convert value of type " + value.GetType() + " to type " + type); 
+            }
+        }
         else
         {
            throw new ReflectionException("Cannot convert value of type " + value.GetType() + " to type " + type); // TODO not reflection exception 
         }
-        
     }
 
     public object? MapFromDatabaseValue(object? value, Type type)
@@ -167,6 +183,10 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
         } else if (type == typeof(ITranslatable) || type.GetInterface(typeof(ITranslatable).FullName!) != null)
         {
             return new Translatable((Guid) value!);
+        }
+        else if (type == typeof(TranslationRow.TranslationKey))
+        {
+            return new TranslationRow.TranslationKey(value);
         }
         else
         {

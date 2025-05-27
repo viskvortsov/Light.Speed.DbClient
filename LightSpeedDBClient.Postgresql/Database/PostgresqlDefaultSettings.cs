@@ -1,4 +1,5 @@
 using LightSpeedDbClient.Exceptions;
+using LightSpeedDbClient.Implementations;
 using LightSpeedDbClient.Models;
 using Npgsql;
 using NpgsqlTypes;
@@ -23,7 +24,7 @@ public static class PostgresqlDefaultSettings
         { typeof(long),    "BIGINT" }
     };
     
-    public static NpgsqlDbType GetSqlDbType(Type type)
+    public static NpgsqlDbType GetSqlDbType(Type type, object value)
     {
         if (!PostgresqlMapper.DefaultTypes.TryGetValue(type, out NpgsqlDbType sqlType))
         {
@@ -34,6 +35,21 @@ public static class PostgresqlDefaultSettings
             else if (type == typeof(ITranslatable))
             {
                 sqlType = NpgsqlDbType.Uuid;
+            }
+            else if (type == typeof(TranslationRow.TranslationKey))
+            {
+                if (value is Guid)
+                {
+                    sqlType = NpgsqlDbType.Uuid;
+                }
+                else if (value is int)
+                {
+                    sqlType = NpgsqlDbType.Integer;
+                }
+                else
+                {
+                    throw new ReflectionException($"Sql type not found for type {type.FullName}"); 
+                }
             }
             else
             {
