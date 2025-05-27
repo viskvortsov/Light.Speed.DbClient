@@ -348,10 +348,29 @@ public class Tests
         await manager.SaveManyAsync([type2, type3]);
         
         IEnumerable<ProductType> productTypes = await manager.GetListAsync(1, 100);
+        var list = productTypes.ToList();
         
         Assert.NotNull(productTypes);
-        Assert.That(productTypes.Count(), Is.EqualTo(3));
-      
+        Assert.That(list.Count, Is.EqualTo(3));
+
+        var productType1 = list[0];
+        Assert.That(productType1.Id, Is.EqualTo(ProductType.Value.Product));
+        Assert.That(productType1.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType1.Name.GetTranslation(englishMock), Is.EqualTo("Product"));
+        Assert.That(productType1.Name.GetTranslation(spanishMock), Is.EqualTo("Producto"));
+        
+        var productType2 = list[1];
+        Assert.That(productType2.Id, Is.EqualTo(ProductType.Value.Service));
+        Assert.That(productType2.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType2.Name.GetTranslation(englishMock), Is.EqualTo("Service"));
+        Assert.That(productType2.Name.GetTranslation(spanishMock), Is.EqualTo("Servicio"));
+        
+        var productType3 = list[2];
+        Assert.That(productType3.Id, Is.EqualTo(ProductType.Value.Empty));
+        Assert.That(productType3.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType3.Name.GetTranslation(englishMock), Is.EqualTo("Empty"));
+        Assert.That(productType3.Name.GetTranslation(spanishMock), Is.EqualTo("Vacío"));
+        
         await transaction.CommitAsync();
 
         await transaction.DisposeAsync();

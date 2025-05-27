@@ -18,6 +18,7 @@ public abstract class DatabaseObject : IDatabaseObject
     protected DatabaseObject(ModelType modelType)
     {
         _reflection = ClientSettings.GetReflection(GetType());
+        Translations = new DatabaseObjectTable<TranslationRow>();
         _modelType = modelType;
         if (_modelType == Models.ModelType.Row)
             throw new ReflectionException($"Wrong model type used {_modelType}");
@@ -102,8 +103,7 @@ public abstract class DatabaseObject : IDatabaseObject
         object? key = _reflection.MainTableReflection.PartsOfPrimaryKey().First().Property().GetValue(this);
         if (!(key is Guid) && !(key.GetType().IsEnum))
             throw new ReflectionException("Only objects with a single primary key column of type Guid or Int are supported");
-
-        Translations = new DatabaseObjectTable<TranslationRow>();
+        
         foreach (var column in _reflection.MainTableReflection.TranslatableColumns())
         {
             PropertyInfo property = column.Property();
@@ -130,10 +130,31 @@ public abstract class DatabaseObject : IDatabaseObject
 
     public void BeforeGetReference()
     {
+        FillMainTableTranslations();
     }
 
     public void BeforeGetObject()
     {
+        FillMainTableTranslations();
     }
 
+    private void FillMainTableTranslations()
+    {
+        foreach (var column in _reflection.MainTableReflection.TranslatableColumns())
+        {
+            ITranslatable? translatable = (ITranslatable) column.Property().GetValue(this);
+            if (translatable == null)
+            {
+                translatable = new Translatable();
+            }
+            foreach (var translation in Translations)
+            {
+                if (translatable.GetId().Equals(translation.ContentId))
+                {
+                    translatable.AddTranslation(translation.LanguageId, translation.Content);
+                }
+            }
+        }
+    }
+    
 }
