@@ -109,14 +109,15 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         return elements.Values;
     }
 
-    private async void ProcessConnectedTable(IConnectedTable connectedTable, Dictionary<IKey, T> elements, NpgsqlDataReader reader)
+    private async Task ProcessConnectedTable(IConnectedTable connectedTable, Dictionary<IKey, T> elements, NpgsqlDataReader reader)
     {
         if (await reader.NextResultAsync())
         {
             List<IDatabaseObjectTableElement> list = new ();
             while (await reader.ReadAsync())
             {
-                List<object?> values = GetAllValues(reader, connectedTable.TableReflection());
+                ITableReflection connectedTableReflection = connectedTable.TableReflection();
+                List<object?> values = GetAllValues(reader, connectedTableReflection);
                 IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
                 row = _mapper.MapFromDatabaseToModel(connectedTable.TableReflection(), row, values);
                 list.Add(row);
@@ -240,31 +241,12 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
     
     public override async Task<T> SaveAsync(T element)
     {
-        
-        // TODO Check that all elements are objects
-
-        element.BeforeSave();
-        PostgresqlSaveQuery<T> saveQuery = new (Reflection, element, _mapper);
-
-        PostgresqlTransaction? transaction = null;
-        if (Transaction != null)
-        {
-            transaction = (PostgresqlTransaction)Transaction;
-        }
-
-        await using PostgresqlCommand cmd = new PostgresqlCommand(saveQuery, (PostgresqlConnection)Connection, transaction);
-
-        try
-        {
-            await cmd.ExecuteNonQueryAsync();
-        } 
-        catch (Exception e)
-        {
-            throw new DatabaseSaveException($"Error saving element", e);
-        }
-
-        return await GetByKeyAsync(element.Key());
-        
+        List<T> elements = new List<T> { element };
+        IEnumerable<T> savedElements = await SaveManyAsync(elements);
+        var databaseObjects = savedElements.ToList();
+        if (databaseObjects.Count() == 1)
+            return databaseObjects.First();
+        throw new DatabaseException($"Error saving element");
     }
 
     public override async Task<IEnumerable<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000)
