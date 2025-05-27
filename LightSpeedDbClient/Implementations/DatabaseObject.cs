@@ -104,11 +104,52 @@ public abstract class DatabaseObject : IDatabaseObject
         if (!(key is Guid) && !(key.GetType().IsEnum))
             throw new ReflectionException("Only objects with a single primary key column of type Guid or Int are supported");
         
-        foreach (var column in _reflection.MainTableReflection.TranslatableColumns())
+        Translations.Clear();
+        SaveTranslations(this, key, _reflection.MainTableReflection);
+        foreach (var table in _reflection.ConnectedTables())
+        {
+            PropertyInfo property = table.Property();
+            IDatabaseObjectTable? rows = (IDatabaseObjectTable) property.GetValue(this);
+            if (rows == null) continue;
+            foreach (var row in rows)
+            {
+                SaveTranslations((IDatabaseElement) row, key, table.TableReflection());
+            }
+        }
+    }
+
+    public void BeforeDelete()
+    {
+    }
+
+    public void BeforeGetReference()
+    {
+        FillTableTranslations(this, _reflection.MainTableReflection);
+    }
+
+    public void BeforeGetObject()
+    {
+        FillTableTranslations(this, _reflection.MainTableReflection);
+        foreach (var table in _reflection.ConnectedTables())
+        {
+            PropertyInfo property = table.Property();
+            IDatabaseObjectTable? rows = (IDatabaseObjectTable) property.GetValue(this);
+            if (rows == null) continue;
+            foreach (var row in rows)
+            {
+                FillTableTranslations((IDatabaseElement) row, table.TableReflection());
+            }
+            
+        }
+    }
+
+    private void SaveTranslations(IDatabaseElement element, object key, ITableReflection table)
+    {
+        foreach (var column in table.TranslatableColumns())
         {
             PropertyInfo property = column.Property();
             Type type = property.PropertyType;
-            object? value = property.GetValue(this);
+            object? value = property.GetValue(element);
             if (value == null) continue;
             ITranslatable? translatable = (ITranslatable) value;
             foreach (var translation in translatable.AllTranslations())
@@ -121,28 +162,13 @@ public abstract class DatabaseObject : IDatabaseObject
                 Translations.Add(row);
             }
         }
-        
     }
-
-    public void BeforeDelete()
+    
+    private void FillTableTranslations(IDatabaseElement element, ITableReflection table)
     {
-    }
-
-    public void BeforeGetReference()
-    {
-        FillMainTableTranslations();
-    }
-
-    public void BeforeGetObject()
-    {
-        FillMainTableTranslations();
-    }
-
-    private void FillMainTableTranslations()
-    {
-        foreach (var column in _reflection.MainTableReflection.TranslatableColumns())
+        foreach (var column in table.TranslatableColumns())
         {
-            ITranslatable? translatable = (ITranslatable) column.Property().GetValue(this);
+            ITranslatable? translatable = (ITranslatable) column.Property().GetValue(element);
             if (translatable == null)
             {
                 translatable = new Translatable();

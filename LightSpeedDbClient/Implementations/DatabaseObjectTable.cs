@@ -56,39 +56,39 @@ public class DatabaseObjectTable<T> : IDatabaseObjectTable where T : IDatabaseOb
 
     public void Clear()
     {
-        throw new NotImplementedException();
+        _elements.Clear();
     }
 
     public bool Contains(object? value)
     {
-        throw new NotImplementedException();
+        return _elements.Contains((T) value);
     }
 
     public int IndexOf(object? value)
     {
-        throw new NotImplementedException();
+        return _elements.IndexOf((T) value);
     }
 
     public void Insert(int index, object? value)
     {
-        throw new NotImplementedException();
+        _elements.Insert(index, (T) value);
     }
 
     public void Remove(object? value)
     {
-        throw new NotImplementedException();
+        _elements.Remove((T) value);
     }
 
     public void RemoveAt(int index)
     {
-        throw new NotImplementedException();
+        _elements.RemoveAt(index);;
     }
 
     public bool IsFixedSize { get; }
 
     public void CopyTo(Array array, int index)
     {
-        throw new NotImplementedException();
+        _elements.CopyTo((T[]) array, index);
     }
 
     public int Count => _elements.Count;

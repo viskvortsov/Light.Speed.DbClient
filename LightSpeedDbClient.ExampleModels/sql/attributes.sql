@@ -2,7 +2,6 @@ create table attributes
 (
     id uuid not null,
     name uuid not null,
-    owner_id uuid not null,
     constraint attributes_id
         primary key (id)
 );

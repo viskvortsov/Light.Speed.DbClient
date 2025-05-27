@@ -407,6 +407,8 @@ public class Tests
         attribute.Name.AddTranslation(englishMock, "Type");
         attribute.Name.AddTranslation(spanishMock, "typo");
         
+        await attributeManager.SaveAsync(attribute);
+        
         IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction2);
         Product product = productManager.CreateObject();
         product.Id = Guid.NewGuid();

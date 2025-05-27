@@ -28,6 +28,13 @@ public class TableReflection : ITableReflection
         _name = type.Name.ToLower();
         _queryName = queryName;
         
+        TranslatableTableAttribute? translatable = _type.GetCustomAttribute<TranslatableTableAttribute>();
+        _isTranslatable = translatable != null;
+        if (_isTranslatable)
+        {
+            _translationsTableName = translatable!.Table;
+        }
+        
         FillColumns();
         FillTables();
         FillAdditionalFields();
@@ -179,6 +186,11 @@ public class TableReflection : ITableReflection
     public IEnumerable<IColumnReflection> Columns()
     {
         return _columns;
+    }
+
+    public string? TranslationsTableQueryName()
+    {
+        return _translationsTableName;
     }
 
     public IEnumerable<IColumnReflection> TranslatableColumns()

@@ -11,6 +11,7 @@ public interface ITableReflection
     Type Type();
     bool IsTranslatable();
     IEnumerable<IColumnReflection> Columns();
+    string? TranslationsTableQueryName();
     IEnumerable<IColumnReflection> TranslatableColumns();
     IEnumerable<IColumnReflection> PartsOfPrimaryKey();
     IEnumerable<IColumnReflection> PartsOfOwnerKey();
