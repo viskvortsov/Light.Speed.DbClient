@@ -15,14 +15,30 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
     private readonly bool _usePagination;
     private readonly QueryParameters _parameters;
     private readonly IFilters<T> _filters;
+    private readonly ISorting<T> _sorting;
     private readonly IMapper _mapper;
+    private readonly ModelType _mode;
     
-    public PostgresqlSelectListObjectsQuery(IFilters<T> filters, DatabaseObjectReflection reflection, IMapper mapper, int? page = null, int? limit = null)
+    public PostgresqlSelectListObjectsQuery(
+        IFilters<T> filters,
+        ISorting<T> sorting,
+        ModelType modelType, 
+        DatabaseObjectReflection reflection, 
+        IMapper mapper, 
+        int? page = null, 
+        int? limit = null)
     {
+
+        if (modelType != ModelType.Reference && modelType != ModelType.Object)
+        {
+            throw new NotSupportedException(); // TODO
+        }
+        
         _reflection = reflection;
         _page = page;
         _limit = limit;
         _mapper = mapper;
+        _mode = modelType;
 
         if (_page <= 0)
             throw new PageValueException("Page value should be more then 0.");
@@ -32,7 +48,9 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         
         _usePagination = page != null && limit != null;
         _filters = filters;
+        _sorting = sorting;
         _parameters = new ();
+        
     }
 
     public string GetQueryText()
@@ -65,12 +83,23 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         
         sb.Append(MainRowFromTemporaryTableQuery(tableName));
         sb.Append(" ");
-        List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
-        foreach (var connectedTable in connectedTables)
+        if (_mode == ModelType.Object)
+        {
+            List<IConnectedTable> connectedTables = _reflection.ConnectedTables().ToList();
+            foreach (var connectedTable in connectedTables)
+            {
+                sb.Append(ConnectedTableSelectQuery(connectedTable, tableName));
+                sb.Append(" ");
+            }
+        }
+        
+        List<IConnectedTable> translationTables = _reflection.TranslationTables().ToList();
+        foreach (var connectedTable in translationTables)
         {
             sb.Append(ConnectedTableSelectQuery(connectedTable, tableName));
             sb.Append(" ");
         }
+        
         sb.Append(DropTemporaryTableQuery(tableName));
         
         return sb.ToString();

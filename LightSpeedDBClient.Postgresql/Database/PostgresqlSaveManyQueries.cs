@@ -42,6 +42,29 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
             
         }
         
+        List<IConnectedTable> translationTables = reflection.TranslationTables().ToList();
+        foreach (var connectedTable in translationTables)
+        {
+            _subQueries.Add(ConnectedTableDeleteQuery(connectedTable));
+            
+            bool atLeastOneElementHaveRowInTable = false;
+            foreach (var element in _elements)
+            {
+                IDatabaseObjectTable table = element.Table(connectedTable.Name());
+                if (table.Count > 0)
+                {
+                    atLeastOneElementHaveRowInTable = true;
+                    break;
+                }
+            }
+
+            if (atLeastOneElementHaveRowInTable)
+            {
+                _subQueries.Add(ConnectedTableInsertQuery(connectedTable));
+            }
+            
+        }
+        
         return _subQueries;
     }
     

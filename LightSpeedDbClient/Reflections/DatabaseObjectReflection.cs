@@ -6,7 +6,8 @@ public class DatabaseObjectReflection
 {
     
     private readonly ITableReflection _mainTableReflection;
-    private readonly IConnectedTables _connectedTables;
+    private readonly ConnectedTables _connectedTables;
+    private readonly TranslationTables _translationTables;
     
     public ITableReflection MainTableReflection => _mainTableReflection;
     
@@ -14,6 +15,7 @@ public class DatabaseObjectReflection
     {
         _mainTableReflection = new TableReflection(type);
         _connectedTables = new ConnectedTables(type);
+        _translationTables = new TranslationTables(type);
         foreach (var table in _connectedTables)
         {
             foreach (var column in table.TableReflection().PartsOfOwnerKey())
@@ -47,6 +49,11 @@ public class DatabaseObjectReflection
     public IConnectedTables ConnectedTables()
     {
         return _connectedTables;
+    }
+    
+    public IConnectedTables TranslationTables()
+    {
+        return _translationTables;
     }
 
 }

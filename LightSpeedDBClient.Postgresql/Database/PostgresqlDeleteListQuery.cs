@@ -22,6 +22,12 @@ public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectRef
             sb.Append(ConnectedTableDeleteQuery(connectedTable));
             sb.Append(" ");
         }
+        List<IConnectedTable> translationTables = reflection.TranslationTables().ToList();
+        foreach (var connectedTable in translationTables)
+        {
+            sb.Append(ConnectedTableDeleteQuery(connectedTable));
+            sb.Append(" ");
+        }
         sb.Append(MainRowDeleteQuery());
         sb.Append($" ");
         

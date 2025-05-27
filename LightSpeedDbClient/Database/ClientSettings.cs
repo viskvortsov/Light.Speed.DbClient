@@ -54,6 +54,10 @@ public static class ClientSettings
             {
                 ConnectedTablesReflections.Add(connectedTable.TableReflection().Type(), connectedTable.TableReflection());
             }
+            foreach (var connectedTable in reflection.TranslationTables())
+            {
+                ConnectedTablesReflections.Add(connectedTable.TableReflection().Type(), connectedTable.TableReflection());
+            }
             
             return reflection;
 
@@ -67,7 +71,7 @@ public static class ClientSettings
         {
             return reflection;
         }
-
+        
         throw new ReflectionException($"Connected table not found for type {type.Name}");
 
     }

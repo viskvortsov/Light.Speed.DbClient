@@ -40,9 +40,9 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
     
     public override async Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null)
     {
-        var elements = new List<T>();
+        Dictionary<IKey, T> elements = new ();
         
-        PostgresqlSelectListQuery<T> selectListQuery = new PostgresqlSelectListQuery<T>(filters, Reflection, _mapper, page, limit);
+        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Reference, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -57,20 +57,25 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             List<object?> values = GetAllValues(reader, Reflection.MainTableReflection);
             T element = CreateReference();
             element = (T) _mapper.MapFromDatabaseToModel(element, values);
-            elements.Add(element);
+            elements.Add(element.Key(), element);
         }
-        foreach (var element in elements)
+        foreach (IConnectedTable connectedTable in Reflection.TranslationTables())
+        {
+            ProcessConnectedTable(connectedTable, elements, reader);
+        }
+        foreach (var element in elements.Values)
         {
             element.BeforeGetReference();
         }
-        return elements;
+        
+        return elements.Values;
     }
 
     public override async Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null)
     {
         Dictionary<IKey, T> elements = new ();
         
-        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, Reflection, _mapper, page, limit);
+        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
         if (Transaction != null)
@@ -89,50 +94,60 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
         foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
         {
-            if (await reader.NextResultAsync())
-            {
-                List<IDatabaseObjectTableElement> list = new ();
-                while (await reader.ReadAsync())
-                {
-                    List<object?> values = GetAllValues(reader, connectedTable.TableReflection());
-                    IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
-                    row = _mapper.MapFromDatabaseToModel(connectedTable.TableReflection(), row, values);
-                    list.Add(row);
-                }
-                    
-                foreach (var row in list)
-                {
-                        
-                    IKey ownerKey = row.OwnerKey();
-                    List<KeyElement> keyParts = new List<KeyElement>();
-                    foreach (var ownerKeyPart in ownerKey.KeyElements())
-                    {
-                        string? relation = ownerKeyPart.Column().Relation();
-                        if (relation == null)
-                            throw new ModelSetupException($"Relation not found for owner key {ownerKeyPart.Column().Name()}");
-                        keyParts.Add(new KeyElement(Reflection.GetColumnReflection(relation), _mapper.MapToDatabaseValue(ownerKeyPart.Value(), ownerKeyPart.Column().Type())));;
-                    }
-                    IKey primaryKey = new Key(keyParts);
-                        
-                    elements.TryGetValue(primaryKey, out T? savedElement);
-                    if (savedElement == null)
-                    {
-                        throw new DatabaseException($"Error saving element, No element found for owner key {ownerKey}");
-                    }
-                    savedElement.Table(connectedTable.Name()).Add(row);
-                }
-            }
-            else
-            {
-                throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
-            }
+            ProcessConnectedTable(connectedTable, elements, reader);
+        }
+        foreach (IConnectedTable connectedTable in Reflection.TranslationTables())
+        {
+            ProcessConnectedTable(connectedTable, elements, reader);
         }
 
         foreach (var element in elements.Values)
         {
             element.BeforeGetObject();
         }
+        
         return elements.Values;
+    }
+
+    private async void ProcessConnectedTable(IConnectedTable connectedTable, Dictionary<IKey, T> elements, NpgsqlDataReader reader)
+    {
+        if (await reader.NextResultAsync())
+        {
+            List<IDatabaseObjectTableElement> list = new ();
+            while (await reader.ReadAsync())
+            {
+                List<object?> values = GetAllValues(reader, connectedTable.TableReflection());
+                IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
+                row = _mapper.MapFromDatabaseToModel(connectedTable.TableReflection(), row, values);
+                list.Add(row);
+            }
+                    
+            foreach (var row in list)
+            {
+                        
+                IKey ownerKey = row.OwnerKey();
+                List<KeyElement> keyParts = new List<KeyElement>();
+                foreach (var ownerKeyPart in ownerKey.KeyElements())
+                {
+                    string? relation = ownerKeyPart.Column().Relation();
+                    if (relation == null)
+                        throw new ModelSetupException($"Relation not found for owner key {ownerKeyPart.Column().Name()}");
+                    keyParts.Add(new KeyElement(Reflection.GetColumnReflection(relation), _mapper.MapToDatabaseValue(ownerKeyPart.Value(), ownerKeyPart.Column().Type())));;
+                }
+                IKey primaryKey = new Key(keyParts);
+                        
+                elements.TryGetValue(primaryKey, out T? savedElement);
+                if (savedElement == null)
+                {
+                    throw new DatabaseException($"Error saving element, No element found for owner key {ownerKey}");
+                }
+                savedElement.Table(connectedTable.Name()).Add(row);
+            }
+        }
+        else
+        {
+            throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
+        }
     }
     
     public override async Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null)

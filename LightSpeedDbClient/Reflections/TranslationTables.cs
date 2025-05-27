@@ -5,12 +5,12 @@ using LightSpeedDbClient.Exceptions;
 
 namespace LightSpeedDbClient.Reflections;
 
-public class ConnectedTables : IConnectedTables
+public class TranslationTables : IConnectedTables
 {
     
     private readonly Dictionary<string, IConnectedTable> _tables;
 
-    public ConnectedTables(Type type)
+    public TranslationTables(Type type)
     {
         ModelAttribute? model = type.GetCustomAttribute<ModelAttribute>();
         if (model == null)
@@ -18,19 +18,14 @@ public class ConnectedTables : IConnectedTables
 
         _tables = new Dictionary<string, IConnectedTable>();
         
-        PropertyInfo[] properties = type.GetProperties();
-        foreach (var property in properties)
+        TranslatableTableAttribute? translatable = type.GetCustomAttribute<TranslatableTableAttribute>();
+        if (translatable != null)
         {
-            TableAttribute? table = property.GetCustomAttribute<TableAttribute>();
-            if (table != null)
-            {
-                ConnectedTable connectedTable = new ConnectedTable(property);
-                if (_tables.ContainsKey(connectedTable.Name()))
-                {
-                    throw new ReflectionException($"Connected table {connectedTable.Name()} already exists");
-                }
-                _tables.Add(connectedTable.Name(), connectedTable);
-            }
+            PropertyInfo? property = type.GetProperty("Translations");
+            if (property == null)
+                throw new ReflectionException("Translations property not found"); // TODO
+            TranslationsTable connectedTable = new TranslationsTable(property, translatable.Table);
+            _tables.Add(connectedTable.Name(), connectedTable);
         }
     }
 

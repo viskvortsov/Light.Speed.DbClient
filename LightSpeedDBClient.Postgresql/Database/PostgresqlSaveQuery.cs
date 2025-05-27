@@ -38,6 +38,13 @@ public class PostgresqlSaveQuery<T>: IQuery where T : IDatabaseObject
             sb.Append(ConnectedTableInsertQuery(connectedTable));
         }
         
+        List<IConnectedTable> translationTables = _reflection.TranslationTables().ToList();
+        foreach (var connectedTable in translationTables)
+        {
+            sb.Append(ConnectedTableDeleteQuery(connectedTable));
+            sb.Append(ConnectedTableInsertQuery(connectedTable));
+        }
+        
         return sb.ToString();
     }
 
