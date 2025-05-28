@@ -23,26 +23,27 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     public PostgresqlManager(IConnection connection, ITransaction transaction) : base(connection, transaction){}
 
-    public override async Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null)
+    public override async Task<IDataSelection<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null)
     {
         return await GetListAsync(filters, new Sorting<T>(), page, limit);
     }
 
-    public override async Task<IEnumerable<T>> GetListAsync(ISorting<T> sortBy, int? page = null, int? limit = null)
+    public override async Task<IDataSelection<T>> GetListAsync(ISorting<T> sortBy, int? page = null, int? limit = null)
     {
         return await GetListAsync(new Filters<T>(), sortBy, page, limit);
     }
 
-    public override async Task<IEnumerable<T>> GetListAsync(int? page = null, int? limit = null)
+    public override async Task<IDataSelection<T>> GetListAsync(int? page = null, int? limit = null)
     {
         return await GetListAsync(new Filters<T>(), new Sorting<T>(), page, limit);
     }
     
-    public override async Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null)
+    public override async Task<IDataSelection<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null)
     {
         List<T> sortedElements = new List<T>();
         Dictionary<IKey, T> elements = new ();
         
+        PostgresqlSelectListObjectsQuery<T> countQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper);
         PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Reference, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
@@ -51,8 +52,21 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             transaction = (PostgresqlTransaction)Transaction;
         }
 
-        await using PostgresqlCommand cmd = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
-        await using var reader = await cmd.ExecuteReaderAsync();
+        await using PostgresqlCommand cmd1 = new PostgresqlCommand(countQuery, (PostgresqlConnection)Connection, transaction);
+        int count = await cmd1.ExecuteNonQueryAsync();
+        if (count == 0)
+        {
+            if (page != null && limit != null)
+            {
+                return new PaginatedDataSelection<T>((long)page!, (long)limit!, sortedElements, count);
+            }
+            else
+            {
+                return new DataSelection<T>(sortedElements);
+            }
+        }
+        await using PostgresqlCommand cmd2 = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
+        await using var reader = await cmd2.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             List<object?> values = GetAllValues(reader, Reflection.MainTableReflection);
@@ -70,14 +84,21 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             element.BeforeGetReference();
         }
         
-        return sortedElements;
+        IDataSelection<T> finalElements = new DataSelection<T>(sortedElements);
+        if (page != null && limit != null)
+        {
+            finalElements = new PaginatedDataSelection<T>((long)page!, (long)limit!, sortedElements, count);
+        }
+        
+        return finalElements;
     }
 
-    public override async Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null)
+    public override async Task<IDataSelection<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null)
     {
         List<T> sortedElements = new List<T>();
         Dictionary<IKey, T> elements = new ();
         
+        PostgresqlSelectListObjectsQuery<T> countQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper);
         PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
@@ -85,9 +106,21 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             transaction = (PostgresqlTransaction)Transaction;
         }
-
-        await using PostgresqlCommand cmd = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
-        await using var reader = await cmd.ExecuteReaderAsync();
+        await using PostgresqlCommand cmd1 = new PostgresqlCommand(countQuery, (PostgresqlConnection)Connection, transaction);
+        int count = await cmd1.ExecuteNonQueryAsync();
+        if (count == 0)
+        {
+            if (page != null && limit != null)
+            {
+                return new PaginatedDataSelection<T>((long)page!, (long)limit!, sortedElements, count);
+            }
+            else
+            {
+                return new DataSelection<T>(sortedElements);
+            }
+        }
+        await using PostgresqlCommand cmd2 = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
+        await using var reader = await cmd2.ExecuteReaderAsync();
         while (await reader.ReadAsync())
         {
             List<object?> values = GetAllValues(reader, Reflection.MainTableReflection);
@@ -109,8 +142,14 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             element.BeforeGetObject();
         }
+
+        IDataSelection<T> finalElements = new DataSelection<T>(sortedElements);
+        if (page != null && limit != null)
+        {
+            finalElements = new PaginatedDataSelection<T>((long)page!, (long)limit!, sortedElements, count);
+        }
         
-        return sortedElements;
+        return finalElements;
     }
 
     private async Task ProcessConnectedTable(IConnectedTable connectedTable, Dictionary<IKey, T> elements, NpgsqlDataReader reader)
@@ -155,17 +194,17 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
     }
     
-    public override async Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null)
+    public override async Task<IDataSelection<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null)
     {
         return await GetListObjectsAsync(filters, new Sorting<T>(), page, limit);
     }
     
-    public override async Task<IEnumerable<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null, int? limit = null)
+    public override async Task<IDataSelection<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null, int? limit = null)
     {
         return await GetListObjectsAsync(new Filters<T>(), sortBy, page, limit);
     }
 
-    public override async Task<IEnumerable<T>> GetListObjectsAsync(int? page = null, int? limit = null)
+    public override async Task<IDataSelection<T>> GetListObjectsAsync(int? page = null, int? limit = null)
     {
         return await GetListObjectsAsync(new Filters<T>(), new Sorting<T>(), page, limit); 
     }
@@ -177,7 +216,20 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     public override async Task<int> CountAsync(IFilters<T> filters)
     {
-        throw new NotImplementedException(); // TODO Implement count
+        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(
+            filters, 
+            new Sorting<T>(), 
+            ModelType.Object, 
+            Reflection, _mapper
+        );
+
+        PostgresqlTransaction? transaction = null;
+        if (Transaction != null)
+        {
+            transaction = (PostgresqlTransaction)Transaction;
+        }
+        await using PostgresqlCommand cmd = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
+        return await cmd.ExecuteNonQueryAsync();
     }
 
     public override async Task<T> GetByKeyAsync(IKey key)
@@ -253,7 +305,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         throw new DatabaseException($"Error saving element");
     }
 
-    public override async Task<IEnumerable<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000)
+    public override async Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000)
     {
         
         // TODO Check that all elements are objects

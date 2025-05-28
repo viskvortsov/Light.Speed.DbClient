@@ -44,25 +44,25 @@ public abstract class Manager<T>(IConnection connection, ITransaction? transacti
         return constructor.Invoke([ModelType.Row]);
     }
     
-    public abstract Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null);
-    public abstract Task<IEnumerable<T>> GetListAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
-    public abstract Task<IEnumerable<T>> GetListAsync(int? page = null, int? limit = null);
+    public abstract Task<IDataSelection<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    public abstract Task<IDataSelection<T>> GetListAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
+    public abstract Task<IDataSelection<T>> GetListAsync(int? page = null, int? limit = null);
     
-    public abstract Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null,
+    public abstract Task<IDataSelection<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null,
         int? limit = null);
     
-    public abstract Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null);
-    public abstract Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy,
+    public abstract Task<IDataSelection<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    public abstract Task<IDataSelection<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy,
         int? page = null, int? limit = null);
-    public abstract Task<IEnumerable<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null,
+    public abstract Task<IDataSelection<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null,
         int? limit = null);
-    public abstract Task<IEnumerable<T>> GetListObjectsAsync(int? page = null, int? limit = null);
+    public abstract Task<IDataSelection<T>> GetListObjectsAsync(int? page = null, int? limit = null);
 
     public abstract Task<int> CountAsync(IFilters<T> filters);
     public abstract Task<int> CountAsync();
     public abstract Task<T> GetByKeyAsync(IKey key);
     public abstract Task<T> SaveAsync(T element);
-    public abstract Task<IEnumerable<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000);
+    public abstract Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000);
 
     public abstract Task<int> DeleteAsync(IFilters<T> filters);
     public abstract Task<int> DeleteByKeyAsync(IKey key);

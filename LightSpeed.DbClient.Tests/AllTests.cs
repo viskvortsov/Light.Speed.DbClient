@@ -473,7 +473,12 @@ public class Tests
         var product30 = list30[0];
         Assert.That(list30.Count, Is.EqualTo(1));
         Assert.That(product30.Name.GetTranslation(spanishMock), Is.EqualTo("Producto 1 Versace"));
-
+        
+        int n = await productManager.CountAsync(filters);
+        Assert.That(n, Is.EqualTo(1));
+        n = await productManager.CountAsync();
+        Assert.That(n, Is.EqualTo(2));
+        
         await transaction.DisposeAsync();
         await db.DisposeAsync();
 
