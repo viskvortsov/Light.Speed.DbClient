@@ -1,0 +1,96 @@
+
+assembly-versioning-scheme: MajorMinorPatch
+assembly-file-versioning-scheme: MajorMinorPatch
+mode: ContinuousDelivery
+tag-prefix: '[vV]'
+continuous-delivery-fallback-tag: ci
+major-version-bump-message: '\+semver:\s?(breaking|major)'
+minor-version-bump-message: '\+semver:\s?(feature|minor)'
+patch-version-bump-message: '\+semver:\s?(fix|patch)'
+no-bump-message: '\+semver:\s?(none|skip)'
+legacy-semver-padding: 4
+build-metadata-padding: 4
+commits-since-version-source-padding: 4
+commit-message-incrementing: Enabled
+branches:
+  develop:
+    mode: ContinuousDeployment
+    tag: alpha
+    increment: Minor
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: true
+    regex: ^dev(elop)?(ment)?$|^origin/dev(elop)?(ment)?$
+    source-branches: []
+    tracks-release-branches: true
+    is-release-branch: false
+    is-mainline: false
+  main:
+    mode: ContinuousDelivery
+    tag: ''
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    regex: ^master$|^main$|^origin/master$|^origin/main$
+    source-branches: ['develop', 'release']
+    tracks-release-branches: false
+    is-release-branch: false
+    is-mainline: true
+  release:
+    mode: ContinuousDelivery
+    tag: rc
+    increment: None
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    regex: ^release?[\/-]|^origin/release?[\/-]
+    source-branches: ['develop', 'main', 'support', 'release']
+    tracks-release-branches: false
+    is-release-branch: true
+    is-mainline: false
+  feature:
+    mode: ContinuousDelivery
+    tag: useBranchName
+    increment: Inherit
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: false
+    regex: ^feature?[\/-]|^origin/feature?[\/-]
+    source-branches: ['develop', 'main', 'release', 'feature', 'support', 'hotfix']
+    tracks-release-branches: false
+    is-release-branch: false
+    is-mainline: false
+  pull-request:
+    mode: ContinuousDelivery
+    tag: pr
+    increment: Inherit
+    prevent-increment-of-merged-branch-version: false
+    tag-number-pattern: '[/-](?<number>\d+)'
+    track-merge-target: false
+    regex: ^(pull|pull\-requests|pr)[/-]|^origin/(pull|pull\-requests|pr)[/-]
+    source-branches: ['develop', 'main', 'release', 'feature', 'support', 'hotfix']
+    tracks-release-branches: false
+    is-release-branch: false
+    is-mainline: false
+  hotfix:
+    mode: ContinuousDelivery
+    tag: hf
+    increment: Patch
+    prevent-increment-of-merged-branch-version: false
+    track-merge-target: false
+    regex: ^hotfix(es)?[/-]|^origin/hotfix(es)?[/-]
+    source-branches: ['develop', 'main', 'support']
+    tracks-release-branches: false
+    is-release-branch: false
+    is-mainline: false
+  support:
+    mode: ContinuousDelivery
+    tag: ''
+    increment: Patch
+    prevent-increment-of-merged-branch-version: true
+    track-merge-target: false
+    regex: ^support[/-]|^origin/support[/-]
+    source-branches: ['main']
+    tracks-release-branches: false
+    is-release-branch: false
+    is-mainline: true
+ignore:
+  sha: []
+commit-date-format: yyyy-MM-dd

@@ -1,0 +1,56 @@
+pipeline {
+    
+    agent {
+        label 'main'
+    }
+    
+    environment {
+        networkId = UUID.randomUUID().toString()
+    }
+
+    stages {
+
+        stage("Resolving build version") {
+            agent {
+                label 'agent-backend-8'
+            }
+            steps {               
+                script {
+                    sh '${HOME}/.dotnet/tools/dotnet-gitversion /output buildserver'
+                    def props = readProperties file: 'gitversion.properties'
+                    displayName = props.GitVersion_MajorMinorPatch + '.' + props.GitVersion_CommitsSinceVersionSource + props.GitVersion_PreReleaseLabelWithDash
+                    currentBuild.displayName = displayName                
+                }           
+            }           
+        }
+
+        stage("Build asp net core") {
+            agent {
+                label 'agent-backend-8'
+            }
+            steps {
+                script {
+                    sh 'git config --global user.name "jenkins"'
+                    withCredentials([string(credentialsId: 'nugetapikey', variable: 'nugetapikey'), string(credentialsId: 'nugetserver', variable: 'nugetserver')]) {
+                        sh 'dotnet build --configuration Release'
+                        sh "dotnet pack ./LightSpeed.DbClient/LightSpeed.DbClient.csproj -p:Version=${currentBuild.displayName}"
+                        sh "dotnet nuget push -s ${nugetserver} -k ${nugetapikey} ./LightSpeed.DbClient/bin/Release/LightSpeed.DbClient.${currentBuild.displayName}.nupkg"
+                        sh "dotnet pack ./LightSpeed.DbClient.Postgresql/LightSpeed.DbClient.Postgresql.csproj -p:Version=${currentBuild.displayName}"
+                        sh "dotnet nuget push -s ${nugetserver} -k ${nugetapikey} ./LightSpeed.DbClient.Postgresql/bin/Release/LightSpeed.DbClient.Postgresql.${currentBuild.displayName}.nupkg"
+                    }
+                }              
+            }           
+        }
+
+    }
+    
+    post {
+        success {
+            sshagent(['98a1e83a-8fe0-429d-875f-204f9e5091c9']) {
+                sh 'git config --global user.name "jenkins"'
+                sh 'git tag -a ' + currentBuild.displayName + ' -m "jenkins"'
+                sh 'git push --tags'
+            }            
+        }
+    }
+}
