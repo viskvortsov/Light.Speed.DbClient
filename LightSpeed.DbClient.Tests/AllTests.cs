@@ -1,6 +1,7 @@
 using ExampleModels;
 using ExampleModels.Currencies;
 using LightSpeed.DbClient.Database;
+using LightSpeed.DbClient.ExampleModels;
 using LightSpeed.DbClient.Implementations;
 using LightSpeed.DbClient.Models;
 using LightSpeed.DbClient.Postgresql.Database;
@@ -555,6 +556,21 @@ public class Tests
         Assert.That(n, Is.EqualTo(1));
         n = await productManager.CountAsync();
         Assert.That(n, Is.EqualTo(2));
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestSelfReference()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
+        await manager.GetListAsync();
         
         await transaction.DisposeAsync();
         await db.DisposeAsync();

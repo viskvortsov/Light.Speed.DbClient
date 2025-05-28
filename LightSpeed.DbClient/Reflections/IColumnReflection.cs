@@ -14,10 +14,8 @@ public interface IColumnReflection
     ITableReflection Table();
     bool IsPartOfPrimaryKey();
     bool IsPartOfOwnerKey();
-    bool HasAdditionalFields();
     bool IsTranslatable();
     bool HasForeignKeyTable();
-    IEnumerable<IColumnReflection?> AdditionalFields();
     public string ForeignKeyName();
     ITableReflection ForeignKeyTable();
     IColumnReflection ForeignKeyColumn();
