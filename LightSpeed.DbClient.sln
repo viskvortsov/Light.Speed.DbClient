@@ -4,7 +4,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightSpeed.DbClient", "Ligh
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightSpeed.DbClient.Tests", "LightSpeed.DbClient.Tests\LightSpeed.DbClient.Tests.csproj", "{A60668CA-9F1F-49F7-B9F4-D10DA3A35611}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightSpeed.DBClient.Postgresql", "LightSpeed.DBClient.Postgresql\LightSpeed.DBClient.Postgresql.csproj", "{162358EC-7DA0-46BE-B181-9172775629A0}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightSpeed.DbClient.Postgresql", "LightSpeed.DbClient.Postgresql\LightSpeed.DbClient.Postgresql.csproj", "{162358EC-7DA0-46BE-B181-9172775629A0}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LightSpeed.DbClient.ExampleModels", "LightSpeed.DbClient.ExampleModels\LightSpeed.DbClient.ExampleModels.csproj", "{2B8EF58A-0FBC-450A-975F-E1039E14F47C}"
 EndProject
