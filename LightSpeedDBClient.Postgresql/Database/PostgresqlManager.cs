@@ -40,6 +40,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
     
     public override async Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null)
     {
+        List<T> sortedElements = new List<T>();
         Dictionary<IKey, T> elements = new ();
         
         PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Reference, Reflection, _mapper, page, limit);
@@ -58,6 +59,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             T element = CreateReference();
             element = (T) _mapper.MapFromDatabaseToModel(element, values);
             elements.Add(element.Key(), element);
+            sortedElements.Add(element);
         }
         foreach (IConnectedTable connectedTable in Reflection.TranslationTables())
         {
@@ -68,11 +70,12 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             element.BeforeGetReference();
         }
         
-        return elements.Values;
+        return sortedElements;
     }
 
     public override async Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null)
     {
+        List<T> sortedElements = new List<T>();
         Dictionary<IKey, T> elements = new ();
         
         PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper, page, limit);
@@ -91,6 +94,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             T element = CreateObject();
             element = (T) _mapper.MapFromDatabaseToModel(element, values);
             elements.Add(element.Key(), element);
+            sortedElements.Add(element);
         }
         foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
         {
@@ -106,7 +110,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             element.BeforeGetObject();
         }
         
-        return elements.Values;
+        return sortedElements;
     }
 
     private async Task ProcessConnectedTable(IConnectedTable connectedTable, Dictionary<IKey, T> elements, NpgsqlDataReader reader)

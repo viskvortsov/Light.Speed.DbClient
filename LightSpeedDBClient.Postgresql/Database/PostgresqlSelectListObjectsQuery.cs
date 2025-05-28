@@ -390,6 +390,26 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append(" ");
             }
         }
+
+        if (_sorting.HasMainTableSortingElements())
+        {
+            sb.Append(" ");
+            sb.Append("ORDER BY");
+            sb.Append(" ");
+            List<ISortingElement<T>> sortingElements = _sorting.ToList();
+            for (int i = 0; i < sortingElements.Count; i++)
+            {
+                var sortingElement = sortingElements[i];
+                var column = sortingElement.Column();
+                var table = column.Table();
+                sb.Append($"{table.QueryName()}.{column.QueryName()} {sortingElement.DirectionAsString()}");
+                if (i < sortingElements.Count - 1)
+                {
+                    sb.Append(",");
+                }
+                sb.Append(" ");
+            }
+        }
         
         if (_usePagination)
         {
@@ -483,7 +503,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
 
     }
     
-    private string MainRowFromTemporaryTableQuery(string tableName)
+    private string MainRowFromTemporaryTableQuery(string temporaryTableName)
     {
         
         StringBuilder sb = new StringBuilder();
@@ -495,7 +515,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
-            sb.Append($"{tableName}.{column.QueryName()}");
+            sb.Append($"{temporaryTableName}.{column.QueryName()}");
             if (i < columns.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
@@ -568,7 +588,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         }
         
         sb.Append(" ");
-        sb.Append($"FROM {tableName}");
+        sb.Append($"FROM {temporaryTableName}");
         
         // Additional tables
         var additionalTables = _reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
@@ -585,7 +605,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(" ");
             sb.Append("=");
             sb.Append(" ");
-            sb.Append($"{tableName}.{column.QueryName()}");
+            sb.Append($"{temporaryTableName}.{column.QueryName()}");
         }
         
         sb.Append($" ");
@@ -608,7 +628,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append($"{translationsTable}.content_id");
         }
         
-        if (translatableFields.Count > 0)
+        if (allTranslationJoins.Count > 0)
         {
             sb.Append(" ");
             sb.Append("GROUP BY");
@@ -617,7 +637,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             for (int i = 0; i < connectedTableColumns.Count; i++)
             {
                 var column = connectedTableColumns[i];
-                sb.Append($"{tableName}.{column.QueryName()}");
+                sb.Append($"{temporaryTableName}.{column.QueryName()}");
                 if (i < connectedTableColumns.Count - 1)
                     sb.Append(", ");
                 sb.Append(" ");
@@ -636,6 +656,26 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()}");
                 if (index0 < additionalFields.Count - 1)
                     sb.Append(", ");
+                sb.Append(" ");
+            }
+        }
+        
+        if (_sorting.HasMainTableSortingElements())
+        {
+            sb.Append(" ");
+            sb.Append("ORDER BY");
+            sb.Append(" ");
+            List<ISortingElement<T>> sortingElements = _sorting.ToList();
+            for (int i = 0; i < sortingElements.Count; i++)
+            {
+                var sortingElement = sortingElements[i];
+                var column = sortingElement.Column();
+                var table = column.Table();
+                sb.Append($"{temporaryTableName}.{column.QueryName()} {sortingElement.DirectionAsString()}");
+                if (i < sortingElements.Count - 1)
+                {
+                    sb.Append(",");
+                }
                 sb.Append(" ");
             }
         }

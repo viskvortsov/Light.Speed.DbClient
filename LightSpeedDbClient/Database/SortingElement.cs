@@ -19,17 +19,28 @@ public class SortingElement<T> : ISortingElement<T> where T : IDatabaseElement
     
     public bool IsTableSortingElement()
     {
-        throw new NotImplementedException();
+        return true;
     }
 
     public IColumnReflection Column()
     {
-        throw new NotImplementedException();
+        return _column;
     }
 
     public SortingDirection Direction()
     {
-        throw new NotImplementedException();
+        return _direction;
     }
-    
+
+    public string DirectionAsString()
+    {
+        if (_direction == SortingDirection.Descending)
+        {
+            return "desc";
+        }
+        else
+        {
+            return "asc";
+        }
+    }
 }

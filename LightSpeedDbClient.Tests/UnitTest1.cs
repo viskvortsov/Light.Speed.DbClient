@@ -381,7 +381,7 @@ public class Tests
         sorting2.Add(new SortingElement<ProductType>("id", SortingDirection.Descending));
         
         IEnumerable<ProductType> productTypes2 = await manager.GetListObjectsAsync(sorting2, 1, 100);
-        var list2 = productTypes.ToList();
+        var list2 = productTypes2.ToList();
         
         var productType5 = list2[0];
         Assert.That(productType5.Id, Is.EqualTo(ProductType.Value.Service));
