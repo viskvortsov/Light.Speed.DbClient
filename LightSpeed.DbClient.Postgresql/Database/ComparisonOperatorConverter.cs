@@ -25,6 +25,10 @@ public static class ComparisonOperatorConverter
                 return "IN";
             case ComparisonOperator.Like:
                 return "LIKE";
+            case ComparisonOperator.NotLike:
+                return "NOT LIKE";
+            case ComparisonOperator.NotIn:
+                return "NOT IN";
             default:
                 throw new ArgumentOutOfRangeException(nameof(comparisonOperator), comparisonOperator, null);
         }

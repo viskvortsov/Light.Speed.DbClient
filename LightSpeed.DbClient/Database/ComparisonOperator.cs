@@ -9,6 +9,8 @@ public enum ComparisonOperator
     LessThan,
     LessThanOrEquals,
     In,
-    Like
+    Like,
+    NotLike,
+    NotIn
     
 }
