@@ -278,7 +278,6 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         sb.Append($" ");
         foreach (var join in allTranslationJoins)
         {
-            // TODO translation field filter should be here and JOIN should be INNER
             var translationsTable = join[0];
             var table = join[1];
             var field = join[2];
@@ -667,7 +666,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(" ");
             sb.Append("as");
             sb.Append(" ");
-            sb.Append($"{translatableField.TranslationsQueryName()}"); // TODO
+            sb.Append($"{translatableField.TranslationsQueryName()}");
             if (index < translatableFields.Count - 1)
                 sb.Append(",");
             index++;
@@ -851,7 +850,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(" ");
             sb.Append("as");
             sb.Append(" ");
-            sb.Append($"{translatableField.TranslationsQueryName()}"); // TODO
+            sb.Append($"{translatableField.TranslationsQueryName()}");
             if (index < translatableFields.Count - 1)
                 sb.Append(",");
             index++;
