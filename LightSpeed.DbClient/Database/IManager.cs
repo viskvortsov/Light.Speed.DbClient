@@ -16,7 +16,7 @@ public interface IManager<T> : IDisposable, IAsyncDisposable where T : IDatabase
     // pagination test
     
     // TODO sorting by translated field
-
+    
     T CreateObject();
     T CreateReference();
     IFilters<T> CreateFilters();

@@ -6,10 +6,10 @@ public class PaginatedDataSelection<T>(long page, long rowsPerBatch, IEnumerable
     where T : IDatabaseElement
 {
     public bool PaginationUsed => true;
-    public long Page => 0;
-    public long RowsPerBatch => 0;
+    public long Page => page;
+    public long RowsPerBatch => rowsPerBatch;
     public long Count => data.Count();
-    public long TotalRows => data.Count();
+    public long TotalRows => totalRows;
     
     public IEnumerator<T> GetEnumerator()
     {
