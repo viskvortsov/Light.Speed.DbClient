@@ -3,7 +3,7 @@ using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Database;
 
-public class Filters<T> : IFilters<T> where T : IDatabaseElement
+public class Filters<T> : IFilters<T> where T : IDatabaseElement // TODO make it collection itself
 {
     
     private readonly IList<IFilter<T>> _filters = new List<IFilter<T>>();

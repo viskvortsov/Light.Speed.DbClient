@@ -349,51 +349,57 @@ public class Tests
         type3.Name.AddTranslation(spanishMock, "Vacío");
 
         await manager.SaveManyAsync([type2, type3]);
+
+        ISorting<ProductType> sorting = new Sorting<ProductType>();
+        sorting.Add(new SortingElement<ProductType>("id", SortingDirection.Ascending));
         
-        IEnumerable<ProductType> productTypes = await manager.GetListAsync(1, 100);
+        IEnumerable<ProductType> productTypes = await manager.GetListAsync(sorting, 1, 100);
         var list = productTypes.ToList();
         
         Assert.NotNull(productTypes);
         Assert.That(list.Count, Is.EqualTo(3));
 
-        var productType1 = list[0];
-        //Assert.That(productType1.Id, Is.EqualTo(ProductType.Value.Product));
-        //Assert.That(productType1.Name.AllTranslations().Count, Is.EqualTo(2));
-        //Assert.That(productType1.Name.GetTranslation(englishMock), Is.EqualTo("Product"));
-        //Assert.That(productType1.Name.GetTranslation(spanishMock), Is.EqualTo("Producto"));
+        var productType3 = list[0];
+        Assert.That(productType3.Id, Is.EqualTo(ProductType.Value.Empty));
+        Assert.That(productType3.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType3.Name.GetTranslation(englishMock), Is.EqualTo("Empty"));
+        Assert.That(productType3.Name.GetTranslation(spanishMock), Is.EqualTo("Vacío"));
         
-        var productType2 = list[1];
-        //Assert.That(productType2.Id, Is.EqualTo(ProductType.Value.Service));
-        //Assert.That(productType2.Name.AllTranslations().Count, Is.EqualTo(2));
-        //Assert.That(productType2.Name.GetTranslation(englishMock), Is.EqualTo("Service"));
-        //Assert.That(productType2.Name.GetTranslation(spanishMock), Is.EqualTo("Servicio"));
+        var productType1 = list[1];
+        Assert.That(productType1.Id, Is.EqualTo(ProductType.Value.Product));
+        Assert.That(productType1.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType1.Name.GetTranslation(englishMock), Is.EqualTo("Product"));
+        Assert.That(productType1.Name.GetTranslation(spanishMock), Is.EqualTo("Producto"));
         
-        var productType3 = list[2];
-        //Assert.That(productType3.Id, Is.EqualTo(ProductType.Value.Empty));
-        //Assert.That(productType3.Name.AllTranslations().Count, Is.EqualTo(2));
-        //Assert.That(productType3.Name.GetTranslation(englishMock), Is.EqualTo("Empty"));
-        //Assert.That(productType3.Name.GetTranslation(spanishMock), Is.EqualTo("Vacío"));
+        var productType2 = list[2];
+        Assert.That(productType2.Id, Is.EqualTo(ProductType.Value.Service));
+        Assert.That(productType2.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType2.Name.GetTranslation(englishMock), Is.EqualTo("Service"));
+        Assert.That(productType2.Name.GetTranslation(spanishMock), Is.EqualTo("Servicio"));
         
-        IEnumerable<ProductType> productTypes2 = await manager.GetListObjectsAsync(1, 100);
+        ISorting<ProductType> sorting2 = new Sorting<ProductType>();
+        sorting2.Add(new SortingElement<ProductType>("id", SortingDirection.Descending));
+        
+        IEnumerable<ProductType> productTypes2 = await manager.GetListObjectsAsync(sorting2, 1, 100);
         var list2 = productTypes.ToList();
         
-        var productType4 = list2[0];
-        //Assert.That(productType4.Id, Is.EqualTo(ProductType.Value.Product));
-        //Assert.That(productType4.Name.AllTranslations().Count, Is.EqualTo(2));
-        //Assert.That(productType4.Name.GetTranslation(englishMock), Is.EqualTo("Product"));
-        //Assert.That(productType4.Name.GetTranslation(spanishMock), Is.EqualTo("Producto"));
+        var productType5 = list2[0];
+        Assert.That(productType5.Id, Is.EqualTo(ProductType.Value.Service));
+        Assert.That(productType5.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType5.Name.GetTranslation(englishMock), Is.EqualTo("Service"));
+        Assert.That(productType5.Name.GetTranslation(spanishMock), Is.EqualTo("Servicio"));
         
-        var productType5 = list2[1];
-        //Assert.That(productType5.Id, Is.EqualTo(ProductType.Value.Service));
-        //Assert.That(productType5.Name.AllTranslations().Count, Is.EqualTo(2));
-        //Assert.That(productType5.Name.GetTranslation(englishMock), Is.EqualTo("Service"));
-        //Assert.That(productType5.Name.GetTranslation(spanishMock), Is.EqualTo("Servicio"));
+        var productType4 = list2[1];
+        Assert.That(productType4.Id, Is.EqualTo(ProductType.Value.Product));
+        Assert.That(productType4.Name.AllTranslations().Count, Is.EqualTo(2));
+        Assert.That(productType4.Name.GetTranslation(englishMock), Is.EqualTo("Product"));
+        Assert.That(productType4.Name.GetTranslation(spanishMock), Is.EqualTo("Producto"));
         
         var productType6 = list2[2];
-        //Assert.That(productType6.Id, Is.EqualTo(ProductType.Value.Empty));
-        //Assert.That(productType6.Name.AllTranslations().Count, Is.EqualTo(2));
-        //Assert.That(productType6.Name.GetTranslation(englishMock), Is.EqualTo("Empty"));
-        //Assert.That(productType6.Name.GetTranslation(spanishMock), Is.EqualTo("Vacío"));
+        Assert.That(productType6.Id, Is.EqualTo(ProductType.Value.Empty));
+        Assert.That(productType6.Name.AllTranslations().Count, Is.EqualTo(2)); 
+        Assert.That(productType6.Name.GetTranslation(englishMock), Is.EqualTo("Empty"));
+        Assert.That(productType6.Name.GetTranslation(spanishMock), Is.EqualTo("Vacío"));
         
         await transaction.CommitAsync();
         

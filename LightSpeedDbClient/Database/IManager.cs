@@ -5,8 +5,6 @@ namespace LightSpeedDbClient.Database;
 public interface IManager<T> : IDisposable, IAsyncDisposable where T : IDatabaseElement
 {
     
-    // TODO add localization
-    
     // TODO Change all owner keys with primary keys before save
     // TODO go through all todos
     // TODO exceptions
@@ -14,7 +12,10 @@ public interface IManager<T> : IDisposable, IAsyncDisposable where T : IDatabase
     // TODO static analysis and optimization
     
     // TODO add RecordSets
-    // TODO add BeforeSave and AfterSave
+    
+    // TODO sorting
+    // translations filtration
+    // pagination test
 
     T CreateObject();
     T CreateReference();

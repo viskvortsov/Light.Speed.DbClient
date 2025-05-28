@@ -3,12 +3,14 @@ using LightSpeedDbClient.Models;
 
 namespace LightSpeedDbClient.Database;
 
-public class Sorting<T> : ISorting<T> where T : IDatabaseElement
+public class Sorting<T> : ISorting<T> where T : IDatabaseElement // TODO make it collection itself
 {
+    
+    private readonly IList<ISortingElement<T>> _sortingElements = new List<ISortingElement<T>>();
     
     public IEnumerator<ISortingElement<T>> GetEnumerator()
     {
-        throw new NotImplementedException();
+        return _sortingElements.GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator()
@@ -18,27 +20,17 @@ public class Sorting<T> : ISorting<T> where T : IDatabaseElement
 
     public void Add(ISortingElement<T> sortingElement)
     {
-        throw new NotImplementedException();
+        _sortingElements.Add(sortingElement);
     }
 
-    public ISortingElement<T> ConnectedTableSortingElements()
+    public IList<ISortingElement<T>> MainTableSortingElements()
     {
-        throw new NotImplementedException();
-    }
-
-    public ISortingElement<T> MainTableSortingElements()
-    {
-        throw new NotImplementedException();
-    }
-
-    public bool HasConnectedTableSortingElements()
-    {
-        throw new NotImplementedException();
+        return _sortingElements;
     }
 
     public bool HasMainTableSortingElements()
     {
-        throw new NotImplementedException();
+        return _sortingElements.Any();
     }
     
 }
