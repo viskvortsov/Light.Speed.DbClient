@@ -64,7 +64,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
 
         StringBuilder sb = new StringBuilder();
         
-        if (_filters.HasConnectedTableFilters())
+        if (_filters.HasConnectedTableFilters() || _filters.HasTranslationFieldsFilters())
         {
             sb.Append(MainRowTemporaryTableQuery(tableName));
             sb.Append(" ");

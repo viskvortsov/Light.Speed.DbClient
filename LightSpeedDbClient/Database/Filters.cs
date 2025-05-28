@@ -34,6 +34,17 @@ public class Filters<T> : IFilters<T> where T : IDatabaseElement // TODO make it
         }
         return filters;
     }
+    
+    public IFilters<T> TranslationFieldsFilters()
+    {
+        Filters<T> filters = new();
+        foreach (var filter in _filters)
+        {
+            if (!filter.IsTranslationFieldsFilter())
+                filters.Add(filter);
+        }
+        return filters;
+    }
 
     public IEnumerator<IFilter<T>> GetEnumerator()
     {
@@ -53,6 +64,11 @@ public class Filters<T> : IFilters<T> where T : IDatabaseElement // TODO make it
     public bool HasMainTableFilters()
     {
         return MainTableFilters().Any();
+    }
+
+    public bool HasTranslationFieldsFilters()
+    {
+        throw new NotImplementedException();
     }
     
 }

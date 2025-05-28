@@ -8,6 +8,7 @@ public class Filter<T> : IFilter<T> where T : IDatabaseElement
 {
     
     private readonly bool _isTableFilter;
+    private readonly bool _isTranslationFieldsFilter;
     private readonly IColumnReflection _column;
     private readonly ComparisonOperator _operator;
     private readonly Type _type;
@@ -42,7 +43,9 @@ public class Filter<T> : IFilter<T> where T : IDatabaseElement
             _operator = comparisonOperator;
             _value = value;
         }
-        
+
+        _isTranslationFieldsFilter = _column.IsTranslatable();
+
     }
     
     public Filter(IColumnReflection column, ComparisonOperator comparisonOperator, object value)
@@ -51,6 +54,11 @@ public class Filter<T> : IFilter<T> where T : IDatabaseElement
         _type = column.Type();
         _operator = comparisonOperator;
         _value = value;
+    }
+
+    public bool IsTranslationFieldsFilter()
+    {
+        return _isTranslationFieldsFilter;
     }
 
     public IColumnReflection Column()

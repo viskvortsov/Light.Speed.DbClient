@@ -9,4 +9,5 @@ public interface IFilters<T>: IEnumerable<IFilter<T>> where T : IDatabaseElement
     IFilters<T> MainTableFilters();
     bool HasConnectedTableFilters();
     bool HasMainTableFilters();
+    bool HasTranslationFieldsFilters();
 }

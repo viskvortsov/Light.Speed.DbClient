@@ -13,9 +13,10 @@ public interface IManager<T> : IDisposable, IAsyncDisposable where T : IDatabase
     
     // TODO add RecordSets
     
-    // TODO sorting
     // translations filtration
     // pagination test
+    
+    // TODO sorting by translated field
 
     T CreateObject();
     T CreateReference();
