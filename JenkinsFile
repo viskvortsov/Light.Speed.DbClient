@@ -33,8 +33,9 @@ pipeline {
                     sh 'git config --global user.name "jenkins"'
                     withCredentials([string(credentialsId: 'nugetapikey', variable: 'nugetapikey'), string(credentialsId: 'nugetserver', variable: 'nugetserver')]) {
                         sh 'dotnet build --configuration Release'
-                        sh "dotnet pack -p:Version=${currentBuild.displayName}"
+                        sh "dotnet pack ./LightSpeed.DbClient/LightSpeed.DbClient.csproj -p:Version=${currentBuild.displayName}"
                         sh "dotnet nuget push -s ${nugetserver} -k ${nugetapikey} ./LightSpeed.DbClient/bin/Release/LightSpeed.DbClient.${currentBuild.displayName}.nupkg"
+                        sh "dotnet pack ./LightSpeed.DbClient.Postgresql/LightSpeed.DbClient.Postgresql.csproj -p:Version=${currentBuild.displayName}"
                         sh "dotnet nuget push -s ${nugetserver} -k ${nugetapikey} ./LightSpeed.DbClient.Postgresql/bin/Release/LightSpeed.DbClient.Postgresql.${currentBuild.displayName}.nupkg"
                     }
                 }              
