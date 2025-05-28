@@ -31,7 +31,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
 
         if (modelType != ModelType.Reference && modelType != ModelType.Object)
         {
-            throw new NotSupportedException(); // TODO
+            throw new NotSupportedException("Only models Reference and Object are supported");
         }
         
         _reflection = reflection;
@@ -44,7 +44,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             throw new PageValueException("Page value should be more then 0.");
         
         if (page != null && limit == null)
-            limit = 10; // TODO
+            limit = 10;
         
         _usePagination = page != null && limit != null;
         _filters = filters;
@@ -257,10 +257,18 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             {
                 if (filter.IsTranslationFieldsFilter())
                 {
+                    if (filter.Value()?.GetType() != typeof(String))
+                    {
+                        throw new NotSupportedException("Only string values are supported as filter values for translatable fields");
+                    }
                     var field = filter.Column().QueryName();
                     var table = filter.Column().Table().QueryName();
                     var translationsTable = filter.Column().Table().TranslationsTableQueryName();
-                    var value = (String) filter.Value(); // TODO only strings are supported
+                    if (translationsTable == null)
+                    {
+                        throw new ReflectionException($"Translations table not found for column {field} in table {table}");
+                    }
+                    var value = (String) filter.Value()!;
                     var comparisonOperator = filter.Operator();
                     allTranslationJoins.Add([translationsTable, table, field, ComparisonOperatorConverter.Convert(comparisonOperator), value]);
                 }
@@ -270,7 +278,6 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         sb.Append($" ");
         foreach (var join in allTranslationJoins)
         {
-            // TODO translation field filter should be here and JOIN should be INNER
             var translationsTable = join[0];
             var table = join[1];
             var field = join[2];
@@ -328,9 +335,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         sb.Append(" ");
         var connectedTableColumns = _reflection.MainTableReflection.Columns().ToList();
         int index100 = 0;
-        for (int i = 0; i < connectedTableColumns.Count; i++)
+        foreach (var column in connectedTableColumns)
         {
-            var column = connectedTableColumns[i];
             sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
             if (index100 < connectedTableColumns.Count - 1)
                 sb.Append(", ");
@@ -342,9 +348,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(",");
             sb.Append(" ");
         }
-        for (int i = 0; i < additionalFields.Count; i++)
+        foreach (var additionalField in additionalFields)
         {
-            var additionalField = additionalFields[i];
             ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
             sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()}");
             if (index100 < additionalFields.Count - 1)
@@ -451,7 +456,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                     value = _mapper.MapToDatabaseValue(value, type);
                     if (type == typeof(String))
                     {
-                        string parameterName = _parameters.Add(type, ((String)value).ToLower());
+                        string parameterName = _parameters.Add(type, ((String)value!).ToLower());
                         sb.Append($"lower({table.QueryName()}.{filter.Column().QueryName()}) {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                     }
                     else
@@ -636,6 +641,10 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             var field = translatableField.QueryName();
             var table = translatableField.ForeignKeyTable().QueryName();
             var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+            if (translationsTable == null)
+            {
+                throw new ReflectionException($"Translations table not found for column {field} in table {table}");
+            }
             allTranslationJoins.Add([translationsTable, table, field]);
             sb.Append("jsonb_agg");
             sb.Append("(");
@@ -657,7 +666,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(" ");
             sb.Append("as");
             sb.Append(" ");
-            sb.Append($"{translatableField.TranslationsQueryName()}"); // TODO
+            sb.Append($"{translatableField.TranslationsQueryName()}");
             if (index < translatableFields.Count - 1)
                 sb.Append(",");
             index++;
@@ -725,9 +734,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append(" ");
             }
             
-            for (int i = 0; i < additionalFields.Count; i++)
+            foreach (var additionalField in additionalFields)
             {
-                var additionalField = additionalFields[i];
                 ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
                 sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()}");
                 if (index0 < additionalFields.Count - 1)
@@ -746,7 +754,6 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             {
                 var sortingElement = sortingElements[i];
                 var column = sortingElement.Column();
-                var table = column.Table();
                 sb.Append($"{temporaryTableName}.{column.QueryName()} {sortingElement.DirectionAsString()}");
                 if (i < sortingElements.Count - 1)
                 {
@@ -818,6 +825,10 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             var field = translatableField.QueryName();
             var table = translatableField.ForeignKeyTable().QueryName();
             var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+            if (translationsTable == null)
+            {
+                throw new ReflectionException($"Translations table not found for column {field} in table {table}");
+            }
             allTranslationJoins.Add([translationsTable, table, field]);
             sb.Append("jsonb_agg");
             sb.Append("(");
@@ -839,7 +850,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(" ");
             sb.Append("as");
             sb.Append(" ");
-            sb.Append($"{translatableField.TranslationsQueryName()}"); // TODO
+            sb.Append($"{translatableField.TranslationsQueryName()}");
             if (index < translatableFields.Count - 1)
                 sb.Append(",");
             index++;
@@ -925,13 +936,15 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(" ");
             sb.Append("GROUP BY");
             sb.Append(" ");
+            int index200 = 0;
             for (int i = 0; i < connectedTableColumns.Count; i++)
             {
                 var column = connectedTableColumns[i];
                 sb.Append($"{connectedTable.TableReflection().QueryName()}.{column.QueryName()}");
-                if (i < connectedTableColumns.Count - 1)
+                if (index200 < connectedTableColumns.Count - 1)
                     sb.Append(", ");
                 sb.Append(" ");
+                index200++;
             }
 
             if (additionalFields.Count > 0)
@@ -940,14 +953,14 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append(" ");
             }
             
-            for (int i = 0; i < additionalFields.Count; i++)
+            foreach (var additionalField in additionalFields)
             {
-                var additionalField = additionalFields[i];
                 ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
                 sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()}");
-                if (index0 < additionalFields.Count - 1)
+                if (index200 < additionalFields.Count - 1)
                     sb.Append(", ");
                 sb.Append(" ");
+                index200++;
             }
         }
         sb.Append(";");

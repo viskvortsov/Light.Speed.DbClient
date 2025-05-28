@@ -307,16 +307,18 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     public override async Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000)
     {
-        
-        // TODO Check that all elements are objects
-        // TODO create a 100k limit
+        var databaseObjects = elements.ToList();
+        if (databaseObjects.Count() > 100000)
+        {
+            throw new NotSupportedException("Saving more then 100k elements in one batch is not supported");
+        }
 
-        foreach (var element in elements)
+        foreach (var element in databaseObjects)
         {
             element.BeforeSave();
         }
         
-        List<T> listOfElements = elements.ToList();
+        List<T> listOfElements = databaseObjects.ToList();
         IEnumerable<T[]> chunks = listOfElements.Chunk(chunkSize);
         
         PostgresqlTransaction? transaction = null;
@@ -367,7 +369,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                             Type listType = typeof(List<>).MakeGenericType(keyElement.Column().Type());
                             object? createdList = Activator.CreateInstance(listType);
                             if (createdList == null)
-                                throw new ReflectionException($"Error creating list for type {keyElement.Column().Type().Name}"); // TODO not ReflectionException
+                                throw new MappingException($"Error creating list for type {keyElement.Column().Type().Name}");
                             list = (IList) createdList;
                         }
                         else
@@ -375,7 +377,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                             list = (IList) value;
                         }
                         if (list == null)
-                            throw new ReflectionException($"Error creating list for type {keyElement.Column().Type().Name}"); // TODO not ReflectionException
+                            throw new MappingException($"Error creating list for type {keyElement.Column().Type().Name}");
                         list.Add(keyElement.Value());
                         filter =  new Filter<T>(keyElement.Column(), ComparisonOperator.In, list);
                     }
@@ -424,7 +426,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
     private void ConvertToTable(PropertyInfo property, T element, List<IDatabaseObjectTableElement> list)
     {
         Type listType = typeof(List<IDatabaseObjectTableElement>);
-        ConstructorInfo? constructor = property.PropertyType.GetConstructor([listType]); // TODO move to cache
+        ConstructorInfo? constructor = property.PropertyType.GetConstructor([listType]); // TODO performance issues?
         if (constructor == null)
             throw new ReflectionException($"Constructor not found for type {property.PropertyType.Name}");
         property.SetValue(element, constructor.Invoke([list]));
