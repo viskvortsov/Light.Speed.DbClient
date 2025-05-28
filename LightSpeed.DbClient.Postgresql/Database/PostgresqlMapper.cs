@@ -190,12 +190,12 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             }
             else
             {
-                throw new ReflectionException("Cannot convert value of type " + value.GetType() + " to type " + type); 
+                throw new MappingException("Cannot convert value of type " + value.GetType() + " to type " + type); 
             }
         }
         else
         {
-           throw new ReflectionException("Cannot convert value of type " + value.GetType() + " to type " + type); // TODO not reflection exception 
+           throw new MappingException("Cannot convert value of type " + value.GetType() + " to type " + type); 
         }
     }
 
