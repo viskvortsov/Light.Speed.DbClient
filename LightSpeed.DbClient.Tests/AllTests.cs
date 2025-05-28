@@ -141,7 +141,84 @@ public class Tests
         Assert.That(currencies2.Count(), Is.EqualTo(10000));
         
         await transaction.CommitAsync();
-
+        
+        IDataSelection<Currency> cur1 = await manager.GetListAsync(1, 1000);
+        Assert.NotNull(cur1);
+        Assert.That(cur1.Count(), Is.EqualTo(1000));
+        Assert.That(cur1.Page, Is.EqualTo(1));
+        Assert.That(cur1.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur1.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur2 = await manager.GetListAsync(2, 1000);
+        Assert.NotNull(cur2);
+        Assert.That(cur2.Count(), Is.EqualTo(1000));
+        Assert.That(cur2.Page, Is.EqualTo(2));
+        Assert.That(cur2.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur2.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur3 = await manager.GetListAsync(3, 1000);
+        Assert.NotNull(cur3);
+        Assert.That(cur3.Count(), Is.EqualTo(1000));
+        Assert.That(cur3.Page, Is.EqualTo(3));
+        Assert.That(cur3.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur3.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur4 = await manager.GetListAsync(4, 1000);
+        Assert.NotNull(cur4);
+        Assert.That(cur4.Count(), Is.EqualTo(1000));
+        Assert.That(cur4.Page, Is.EqualTo(4));
+        Assert.That(cur4.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur4.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur5 = await manager.GetListAsync(5, 1000);
+        Assert.NotNull(cur5);
+        Assert.That(cur5.Count(), Is.EqualTo(1000));
+        Assert.That(cur5.Page, Is.EqualTo(5));
+        Assert.That(cur5.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur5.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur6 = await manager.GetListObjectsAsync(6, 1000);
+        Assert.NotNull(cur6);
+        Assert.That(cur6.Count(), Is.EqualTo(1000));
+        Assert.That(cur6.Page, Is.EqualTo(6));
+        Assert.That(cur6.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur6.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur7 = await manager.GetListObjectsAsync(7, 1000);
+        Assert.NotNull(cur7);
+        Assert.That(cur7.Count(), Is.EqualTo(1000));
+        Assert.That(cur7.Page, Is.EqualTo(7));
+        Assert.That(cur7.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur7.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur8 = await manager.GetListObjectsAsync(8, 1000);
+        Assert.NotNull(cur8);
+        Assert.That(cur8.Count(), Is.EqualTo(1000));
+        Assert.That(cur8.Page, Is.EqualTo(8));
+        Assert.That(cur8.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur8.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur9 = await manager.GetListObjectsAsync(9, 1000);
+        Assert.NotNull(cur9);
+        Assert.That(cur9.Count(), Is.EqualTo(1000));
+        Assert.That(cur9.Page, Is.EqualTo(9));
+        Assert.That(cur9.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur9.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur10 = await manager.GetListObjectsAsync(10, 1000);
+        Assert.NotNull(cur10);
+        Assert.That(cur10.Count(), Is.EqualTo(1000));
+        Assert.That(cur10.Page, Is.EqualTo(10));
+        Assert.That(cur10.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur10.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur11 = await manager.GetListObjectsAsync(11, 1000);
+        Assert.NotNull(cur11);
+        Assert.That(cur11.Count(), Is.EqualTo(0));
+        Assert.That(cur11.Page, Is.EqualTo(11));
+        Assert.That(cur11.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur11.TotalRows, Is.EqualTo(10000));
+        
         await transaction.DisposeAsync();
         await connection.DisposeAsync();
         await db.DisposeAsync();
@@ -149,7 +226,7 @@ public class Tests
     }
 
     [Test]
-    public async Task Test1()
+    public async Task TestGeneral()
     {
         IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
         IConnection connection = await db.OpenConnectionAsync();
@@ -258,7 +335,7 @@ public class Tests
     }
     
      [Test]
-    public async Task Test4()
+    public async Task TestConnectedTableFilter()
     {
         IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
         IConnection connection = await db.OpenConnectionAsync();
@@ -473,7 +550,12 @@ public class Tests
         var product30 = list30[0];
         Assert.That(list30.Count, Is.EqualTo(1));
         Assert.That(product30.Name.GetTranslation(spanishMock), Is.EqualTo("Producto 1 Versace"));
-
+        
+        int n = await productManager.CountAsync(filters);
+        Assert.That(n, Is.EqualTo(1));
+        n = await productManager.CountAsync();
+        Assert.That(n, Is.EqualTo(2));
+        
         await transaction.DisposeAsync();
         await db.DisposeAsync();
 
