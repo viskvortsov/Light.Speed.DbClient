@@ -40,7 +40,7 @@ public class Filters<T> : IFilters<T> where T : IDatabaseElement // TODO make it
         Filters<T> filters = new();
         foreach (var filter in _filters)
         {
-            if (!filter.IsTranslationFieldsFilter())
+            if (filter.IsTranslationFieldsFilter())
                 filters.Add(filter);
         }
         return filters;
@@ -68,7 +68,14 @@ public class Filters<T> : IFilters<T> where T : IDatabaseElement // TODO make it
 
     public bool HasTranslationFieldsFilters()
     {
-        throw new NotImplementedException();
+        return TranslationFieldsFilters().Any();
     }
-    
+
+    public bool HasNotTranslationFieldsFilters()
+    {
+        var connectedTableFiltersCount = ConnectedTableFilters().Count();
+        var mainTableFiltersCount = MainTableFilters().Count();
+        var translationFieldsFiltersCount = TranslationFieldsFilters().Count();
+        return this.Any() &&  connectedTableFiltersCount + mainTableFiltersCount != translationFieldsFiltersCount;
+    }
 }
