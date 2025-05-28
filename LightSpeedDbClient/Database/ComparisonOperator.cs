@@ -8,6 +8,7 @@ public enum ComparisonOperator
     GreaterThanOrEquals,
     LessThan,
     LessThanOrEquals,
-    In
+    In,
+    Like
     
 }

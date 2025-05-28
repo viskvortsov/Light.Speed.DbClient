@@ -34,7 +34,18 @@ public class Filters<T> : IFilters<T> where T : IDatabaseElement // TODO make it
         }
         return filters;
     }
-    
+
+    public IFilters<T> MainTableNotTranslatableFilters()
+    {
+        Filters<T> filters = new();
+        foreach (var filter in MainTableFilters())
+        {
+            if (!filter.IsTranslationFieldsFilter())
+                filters.Add(filter);
+        }
+        return filters;
+    }
+
     public IFilters<T> TranslationFieldsFilters()
     {
         Filters<T> filters = new();
@@ -64,6 +75,11 @@ public class Filters<T> : IFilters<T> where T : IDatabaseElement // TODO make it
     public bool HasMainTableFilters()
     {
         return MainTableFilters().Any();
+    }
+
+    public bool HasMainTableNotTranslatableFilters()
+    {
+        return MainTableNotTranslatableFilters().Any();
     }
 
     public bool HasTranslationFieldsFilters()

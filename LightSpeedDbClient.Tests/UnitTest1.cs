@@ -467,7 +467,7 @@ public class Tests
         //Assert.That(attributeRow.AttributeName.GetTranslation(spanishMock), Is.EqualTo("typo"));
         
         IFilters<Product> filters = productManager.CreateFilters();
-        filters.Add(new Filter<Product>("name", ComparisonOperator.Equals, "versace"));
+        filters.Add(new Filter<Product>("name", ComparisonOperator.Like, "%versace%"));
         IEnumerable<Product> products3 = await productManager.GetListObjectsAsync(filters, 1, 100);
         var list30 = products3.ToList();
         var product30 = list30[0];

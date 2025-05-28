@@ -23,6 +23,8 @@ public static class ComparisonOperatorConverter
                 return "<=";
             case ComparisonOperator.In:
                 return "IN";
+            case ComparisonOperator.Like:
+                return "LIKE";
             default:
                 throw new ArgumentOutOfRangeException(nameof(comparisonOperator), comparisonOperator, null);
         }
