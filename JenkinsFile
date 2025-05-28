@@ -34,6 +34,8 @@ pipeline {
                     withCredentials([string(credentialsId: 'nugetapikey', variable: 'nugetapikey'), string(credentialsId: 'nugetserver', variable: 'nugetserver')]) {
                         sh 'dotnet build --configuration Release'
                         sh "dotnet pack -p:Version=${currentBuild.displayName}"
+                        sh "dotnet nuget push -s ${nugetserver} -k ${nugetapikey} LightSpeed.DbClient.${currentBuild.displayName}.nupkg"
+                        sh "dotnet nuget push -s ${nugetserver} -k ${nugetapikey} LightSpeed.DbClient.Postgresql.${currentBuild.displayName}.nupkg"
                     }
                 }              
             }           
