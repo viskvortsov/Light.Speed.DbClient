@@ -19,7 +19,7 @@ public class Company : DatabaseObject
     public string CurrencyName { get; set; }
     
     [AddInfo("currency_fk", "rate1")]
-    public int CurrencyRate { get; set; }
+    public Decimal CurrencyRate { get; set; }
     
     public string NotInDatabase { get; set; }
     

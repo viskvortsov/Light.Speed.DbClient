@@ -141,61 +141,19 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(" ");
         }
         
-        // additional fields
-        var additionalFields = _reflection.MainTableReflection.AdditionalFields().ToList();
-        
-        if (additionalFields.Count > 0)
-            sb.Append(",");
-
-        int index0 = 0;
-        foreach (var additionalField in additionalFields)
-        {
-            ITableReflection? foreignKeyTable = additionalField.ForeignKeyTable();
-            if (foreignKeyTable == null)
-                throw new ReflectionException("Additional field has no foreign key table.");
-            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
-            if (index0 < additionalFields.Count - 1)
-                sb.Append(", ");
-            sb.Append(" ");
-            index0++;
-        }
-        
         // Main table
         sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
         
-        // Additional tables
-        var additionalTables = _reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
-        foreach (var column in additionalTables)
-        {
-            ITableReflection? tableReflection = column.ForeignKeyTable();
-            if (tableReflection == null)
-                throw new ReflectionException($"Foreign key table not found for {column.ForeignKeyName()}");
-            
-            IColumnReflection? columnReflection = column.ForeignKeyColumn();
-            if (columnReflection == null)
-                throw new ReflectionException($"Foreign key column not found for {column.ForeignKeyName()}");
-
-            sb.Append(" ");
-            sb.Append("LEFT JOIN");
-            sb.Append(" ");
-            sb.Append($"{tableReflection.QueryName()} as  as {GetTableSynonym(column)}");
-            sb.Append(" ");
-            sb.Append("ON");
-            sb.Append(" ");
-            sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
-            sb.Append(" ");
-            sb.Append("=");
-            sb.Append(" ");
-            sb.Append($"{GetTableSynonym(column)}.{columnReflection.QueryName()}");
-        }
-
         IFilters<T> filters = _filters.ConnectedTableFilters();
         Dictionary<ITableReflection, string> uniqueTables = new Dictionary<ITableReflection, string>();
         int l = 0;
         foreach (var filter in filters)
         {
-            uniqueTables.Add(filter.Column().Table(), $"{filter.Column().Table()}_{l}");
-            l++;
+            if (!uniqueTables.ContainsKey(filter.Column().Table()))
+            {
+                uniqueTables.Add(filter.Column().Table(), $"{filter.Column().Table().QueryName()}_{l}");
+                l++;
+            }
         }
 
         foreach (var table in uniqueTables)
@@ -244,7 +202,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 value = _mapper.MapToDatabaseValue(value, type);
                 string parameterName = _parameters.Add(type, value);
                 
-                sb.Append($"{filter.Column().Table().QueryName()}.{filter.Column().QueryName()}");
+                sb.Append($"{table.Value}.{filter.Column().QueryName()}");
                 sb.Append(" ");
                 sb.Append($"{ComparisonOperatorConverter.Convert(filter.Operator())}");
                 sb.Append(" ");
@@ -284,11 +242,11 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                     sb.Append(" ");
                     sb.Append("INNER JOIN");
                     sb.Append(" ");
-                    sb.Append($"{translationsTable} as {GetTranslationsTableSynonym(filter.Column())}");
+                    sb.Append($"{translationsTable}"); // this seems to be main translation table so maybe synonym is redundant
                     sb.Append(" ");
                     sb.Append("ON");
                     sb.Append(" ");
-                    sb.Append($"{GetTableSynonym(filter.Column())}.{field}");
+                    sb.Append($"{table}.{field}");
                     sb.Append(" ");
                     sb.Append("=");
                     sb.Append(" ");
@@ -335,26 +293,11 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         sb.Append(" ");
         sb.Append("GROUP BY");
         sb.Append(" ");
-        var connectedTableColumns = _reflection.MainTableReflection.Columns().ToList();
         int index100 = 0;
-        foreach (var column in connectedTableColumns)
+        foreach (var column in columns)
         {
             sb.Append($"{_reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
-            if (index100 < connectedTableColumns.Count - 1)
-                sb.Append(", ");
-            sb.Append(" ");
-            index100++;
-        }
-        if (additionalFields.Count > 0)
-        {
-            sb.Append(",");
-            sb.Append(" ");
-        }
-        foreach (var additionalField in additionalFields)
-        {
-            ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
-            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()}");
-            if (index100 < additionalFields.Count - 1)
+            if (index100 < columns.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
             index100++;
