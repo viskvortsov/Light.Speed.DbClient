@@ -229,8 +229,8 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             
             for (int i = 0; i < additionalColumns.Count; i++)
             {
-                var additionalField = additionalColumns[i];
-                sb.Append($"{GetTableSynonym(additionalField)}.{additionalField.QueryName()}");
+                var column = additionalColumns[i];
+                sb.Append($"{GetTableSynonym(column)}.{column.QueryName()}");
                 if (i < additionalColumns.Count - 1)
                     sb.Append(", ");
                 sb.Append(" ");
@@ -443,6 +443,7 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
     private void FillReplacements(ITableReflection tableReflection)
     {
         _tableReplacements.Clear();
+        _translationsTableReplacements.Clear();
         var additionalColumns = tableReflection.ColumnsWithForeignKey().ToList();
         List<String[]> allTranslationJoins = new List<String[]>();
         var translatableFields = tableReflection.TranslatableColumns().ToList();
