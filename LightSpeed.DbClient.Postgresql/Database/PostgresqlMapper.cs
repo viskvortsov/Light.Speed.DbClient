@@ -43,16 +43,18 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
         
         foreach (IColumnReflection column in reflection.Columns())
         {
-            var valueFromDb = values[i];
-            var value = MapFromDatabaseValue(valueFromDb, column.Type());
+            var type = column.Type();
             var property = column.Property();
+            
             try
             {
+                var valueFromDb = values[i];
+                var value = MapFromDatabaseValue(valueFromDb, type);
                 property.SetValue(element, value);
             }
-            catch (TargetException ex)
+            catch (Exception ex)
             {
-                throw new DatabaseException($"Error getting element by key", ex);
+                throw new DatabaseException($"Error trying to set value to property {property.Name} for type {reflection.Name()}", ex);
             }
             i++;
         }
@@ -62,16 +64,18 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
         
         foreach (var column in additionalFields)
         {
-            var valueFromDb = values[i];
-            var value = MapFromDatabaseValue(valueFromDb, column.Type());
             var property = column.Property();
+            var type = column.Type();
+            
             try
             {
+                var valueFromDb = values[i];
+                var value = MapFromDatabaseValue(valueFromDb, type);
                 property.SetValue(element, value);
             }
-            catch (TargetException ex)
+            catch (Exception ex)
             {
-                throw new DatabaseException($"Error getting element by key", ex);
+                throw new DatabaseException($"Error trying to set value to property {property.Name} for type {reflection.Name()}", ex);
             }
             i++;
         }
@@ -84,18 +88,21 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
         int i = 0;
         foreach (IColumnReflection column in connectedTableReflection.Columns())
         {
-            var valueFromDb = values[i];
             var type = column.Type();
-            var value = MapFromDatabaseValue(valueFromDb, type);
             var property = column.Property();
             try
             {
+                var valueFromDb = values[i];
+                var value = MapFromDatabaseValue(valueFromDb, type);
                 property.SetValue(element, value);
             }
-            catch (TargetException ex)
+            catch (Exception ex)
             {
-                throw new DatabaseException($"Error getting element by key", ex);
+                throw new DatabaseException(
+                    $"Error trying to set value to property {property.Name} for type {connectedTableReflection.Name()}",
+                    ex);
             }
+
             i++;
         }
         // additional fields
@@ -109,9 +116,9 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             {
                 property.SetValue(element, value);
             }
-            catch (TargetException ex)
+            catch (Exception ex)
             {
-                throw new DatabaseException($"Error getting element by key", ex);
+                throw new DatabaseException($"Error trying to set value {value} to property {property.Name} for type {connectedTableReflection.Name()}", ex);
             }
             i++;
         }
@@ -127,16 +134,19 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             ITranslatable translatable = (ITranslatable) translatableField.Property().GetValue(element);
             foreach (var translation in value)
             {
-                translatable!.AddTranslation(translation.language_id, translation.content);
+                if (translation.language_id != null && translation.content != null)
+                {
+                    translatable!.AddTranslation((Guid)translation.language_id, translation.content);
+                }
             }
             var property = translatableField.Property();
             try
             {
                 property.SetValue(element, translatable);
             }
-            catch (TargetException ex)
+            catch (Exception ex)
             {
-                throw new DatabaseException($"Error getting element by key", ex);
+                throw new DatabaseException($"Error trying to set value {value} to property {property.Name} for type {connectedTableReflection.Name()}", ex);
             }
             i++;
         }
@@ -211,29 +221,75 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
 
     public object? MapFromDatabaseValue(object? value, Type type)
     {
-        if (value == null)
-            return null;
-        
-        if (DefaultTypes.ContainsKey(type))
+        try
         {
-            return Convert.ChangeType(value, type);
-        }
-        else if (type.IsEnum)
+            if (value == null || value == DBNull.Value)
+                return null;
+
+            if (type == typeof(Guid) || type == typeof(Guid?))
+            {
+                return value;
+            }
+            else if (type == typeof(DateTime) || type == typeof(DateTime?))
+            {
+                return value;
+            }
+            else if (type == typeof(Boolean) || type == typeof(Boolean?))
+            {
+                return value;
+            }
+            else if (type == typeof(String))
+            {
+                return value;
+            }
+            else if (type == typeof(byte) || type == typeof(byte?))
+            {
+                return value;
+            }
+            else if (type == typeof(decimal) || type == typeof(decimal?))
+            {
+                return value;
+            }
+            else if (type == typeof(double) || type == typeof(double?))
+            {
+                return value;
+            }
+            else if (type == typeof(float) || type == typeof(float?))
+            {
+                return value;
+            }
+            else if (type == typeof(short) || type == typeof(short?))
+            {
+                return value;
+            }
+            else if (type == typeof(int) || type == typeof(int?))
+            {
+                return value;
+            }
+            else if (type == typeof(long) || type == typeof(long?))
+            {
+                return value;
+            }
+            else if (type.IsEnum)
+            {
+                return Enum.ToObject(type, value);
+            } else if (type == typeof(ITranslatable) || type.GetInterface(typeof(ITranslatable).FullName!) != null)
+            {
+                if (value == DBNull.Value)
+                    value = Guid.NewGuid();
+                return new Translatable((Guid) value);
+            }
+            else if (type == typeof(TranslationRow.TranslationKey))
+            {
+                return new TranslationRow.TranslationKey(value);
+            }
+            else
+            {
+                throw new NotSupportedException($"Type {type} is not supported.");
+            }
+        } catch (Exception ex)
         {
-            return Enum.ToObject(type, value);
-        } else if (type == typeof(ITranslatable) || type.GetInterface(typeof(ITranslatable).FullName!) != null)
-        {
-            if (value == DBNull.Value)
-                value = Guid.NewGuid();
-            return new Translatable((Guid) value);
-        }
-        else if (type == typeof(TranslationRow.TranslationKey))
-        {
-            return new TranslationRow.TranslationKey(value);
-        }
-        else
-        {
-            throw new NotSupportedException($"Type {type} is not supported.");
+            throw new MappingException($"Error mapping value {value} to type {type}", ex);
         }
     }
 }

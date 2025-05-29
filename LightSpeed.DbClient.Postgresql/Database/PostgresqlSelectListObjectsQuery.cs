@@ -9,6 +9,7 @@ namespace LightSpeed.DbClient.Postgresql.Database;
 public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElement
 {
     
+    private readonly Dictionary<IColumnReflection, string> _tableReplacements = new ();
     private readonly DatabaseObjectReflection _reflection;
     private readonly int? _page;
     private readonly int? _limit;
@@ -55,6 +56,13 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
 
     public string GetQueryText()
     {
+        
+        _tableReplacements.Clear();
+        FillReplacements(_reflection.MainTableReflection);
+        foreach (var connectedTable in _reflection.ConnectedTables())
+        {
+            FillReplacements(connectedTable.TableReflection());
+        }
         
         _parameters.Clear();
         
@@ -734,11 +742,12 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append(" ");
             }
             
-            foreach (var additionalField in additionalFields)
+            for (int i = 0; i < additionalFields.Count; i++)
             {
+                var additionalField = additionalFields[i];
                 ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
                 sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()}");
-                if (index0 < additionalFields.Count - 1)
+                if (i < additionalFields.Count - 1)
                     sb.Append(", ");
                 sb.Append(" ");
             }
@@ -815,6 +824,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         }
         
         int index = 0;
+        bool atLeastOneTranslationJoin = false;
         foreach (var translatableField in translatableFields)
         {
             if (!translatableField.HasForeignKeyTable())
@@ -822,6 +832,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 index++;
                 continue;
             }
+            atLeastOneTranslationJoin = true;
             var field = translatableField.QueryName();
             var table = translatableField.ForeignKeyTable().QueryName();
             var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
@@ -931,7 +942,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         sb.Append($"FROM {tableName}");
         
         sb.Append(")");
-        if (translatableFields.Count > 0)
+        if (atLeastOneTranslationJoin)
         {
             sb.Append(" ");
             sb.Append("GROUP BY");
@@ -953,6 +964,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append(" ");
             }
             
+            index200 = 0;
             foreach (var additionalField in additionalFields)
             {
                 ITableReflection foreignKeyTable = additionalField.ForeignKeyTable();
@@ -967,6 +979,35 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         
         return sb.ToString();
         
+    }
+    
+    private void FillReplacements(ITableReflection tableReflection)
+    {
+        var additionalColumns = tableReflection.ColumnsWithForeignKey().ToList();
+        List<String[]> allTranslationJoins = new List<String[]>();
+        var translatableFields = tableReflection.TranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                var field = translatableField.QueryName();
+                var table = translatableField.ForeignKeyTable().QueryName();
+                var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+                allTranslationJoins.Add([translationsTable, table, field]);
+            }
+        }
+
+        int a = 1;
+        foreach (var additionalColumn in additionalColumns)
+        {
+            _tableReplacements.Add(additionalColumn, $"{additionalColumn.ForeignKeyTable().QueryName()}_{a}");
+            a++;
+        }
+        foreach (var translatableField in translatableFields)
+        {
+            _tableReplacements.Add(translatableField, $"{translatableField.ForeignKeyTable().QueryName()}_{a}");
+            a++;
+        }
     }
     
 }
