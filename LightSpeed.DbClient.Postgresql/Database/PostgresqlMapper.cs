@@ -15,7 +15,7 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
     internal static readonly Dictionary<Type, NpgsqlDbType> DefaultTypes = new()
     {
         { typeof(Guid),    NpgsqlDbType.Uuid },
-        { typeof(string),  NpgsqlDbType.Varchar },
+        { typeof(string),  NpgsqlDbType.Text },
         { typeof(bool),    NpgsqlDbType.Boolean },
         { typeof(byte),    NpgsqlDbType.Bytea },
         { typeof(DateTime),    NpgsqlDbType.TimestampTz },
@@ -24,7 +24,17 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
         { typeof(float),    NpgsqlDbType.Real },
         { typeof(short),    NpgsqlDbType.Smallint },
         { typeof(int),    NpgsqlDbType.Integer },
-        { typeof(long),    NpgsqlDbType.Bigint }
+        { typeof(long),    NpgsqlDbType.Bigint },
+        { typeof(Guid?),    NpgsqlDbType.Uuid },
+        { typeof(bool?),    NpgsqlDbType.Boolean },
+        { typeof(byte?),    NpgsqlDbType.Bytea },
+        { typeof(DateTime?),    NpgsqlDbType.TimestampTz },
+        { typeof(decimal?),    NpgsqlDbType.Numeric },
+        { typeof(double?),    NpgsqlDbType.Double },
+        { typeof(float?),    NpgsqlDbType.Real },
+        { typeof(short?),    NpgsqlDbType.Smallint },
+        { typeof(int?),    NpgsqlDbType.Integer },
+        { typeof(long?),    NpgsqlDbType.Bigint }
     };
     
     public IDatabaseObject MapFromDatabaseToModel(IDatabaseObject element, List<object?> values)
