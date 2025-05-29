@@ -8,18 +8,24 @@ namespace LightSpeed.DbClient.Postgresql.Database;
 
 public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKey key, IMapper mapper) : IQuery
 {
+    private readonly Dictionary<string, string> _tableReplacements = new ();
+    private readonly Dictionary<string, string> _translationsTableReplacements = new ();
     private readonly QueryParameters _parameters = new ();
-
+    
     public string GetQueryText()
     {
+
         _parameters.Clear();
         StringBuilder sb = new StringBuilder();
+        
+        FillReplacements(reflection.MainTableReflection);
         sb.Append(MainRowSelectQuery());
         sb.Append(" ");
         
         List<IConnectedTable> connectedTables = reflection.ConnectedTables().ToList();
         foreach (var connectedTable in connectedTables)
         {
+            FillReplacements(connectedTable.TableReflection());
             sb.Append(ConnectedTableSelectQuery(connectedTable));
             sb.Append(" ");
         }
@@ -27,6 +33,7 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
         List<IConnectedTable> translationTables = reflection.TranslationTables().ToList();
         foreach (var connectedTable in translationTables)
         {
+            FillReplacements(connectedTable.TableReflection());
             sb.Append(ConnectedTableSelectQuery(connectedTable));
             sb.Append(" ");
         }
@@ -41,6 +48,20 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
 
     private string MainRowSelectQuery()
     {
+        
+        var additionalTables = reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
+        var additionalColumns = reflection.MainTableReflection.AdditionalFields().ToList();
+        
+        List<IColumnReflection> allTranslationJoins = new List<IColumnReflection>();
+        var translatableFields = reflection.MainTableReflection.TranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                allTranslationJoins.Add(translatableField);
+            }
+        }
+        
         StringBuilder sb = new StringBuilder();
         sb.Append($"SELECT");
         sb.Append($" ");
@@ -53,31 +74,79 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
                 sb.Append(", ");
             sb.Append(" ");
         }
-        
-        // additional fields
-        var additionalFields = reflection.MainTableReflection.AdditionalFields().ToList();
-        
-        if (additionalFields.Count > 0)
+
+        if (additionalColumns.Count > 0)
             sb.Append(",");
 
         int index0 = 0;
-        foreach (var additionalField in additionalFields)
+        foreach (var column in additionalColumns)
         {
-            ITableReflection? foreignKeyTable = additionalField.ForeignKeyTable();
+            ITableReflection? foreignKeyTable = column.ForeignKeyTable();
             if (foreignKeyTable == null)
-                throw new ReflectionException($"Foreign key table not found for {additionalField.Name()}");
-            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
-            if (index0 < additionalFields.Count - 1)
+                throw new ReflectionException($"Foreign key table not found for {column.Name()}");
+            sb.Append($"{GetTableSynonym(column)}.{column.QueryName()} as {foreignKeyTable.QueryName()}_{column.QueryName()}");
+            if (index0 < additionalColumns.Count - 1)
                 sb.Append(", ");
             sb.Append(" ");
             index0++;
         }
+
+        foreach (var translatableField in translatableFields)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                sb.Append(", ");
+                break;
+            }
+        }
+        
+        int index = 0;
+        foreach (var translatableField in translatableFields)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                index++;
+                continue;
+            }
+            var field = translatableField.QueryName();
+            var table = translatableField.ForeignKeyTable().QueryName();
+            var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+            if (translationsTable == null)
+            {
+                throw new ReflectionException($"Translations table not found for column {field} in table {table}");
+            }
+            sb.Append("jsonb_agg");
+            sb.Append("(");
+            sb.Append("jsonb_build_object");
+            sb.Append("(");
+            sb.Append("'language_id'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.language_id");
+            sb.Append(",");
+            sb.Append("'content_id'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.content_id");
+            sb.Append(",");
+            sb.Append("'content'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.content");
+            sb.Append(")");
+            sb.Append(")");
+            sb.Append(" ");
+            sb.Append("as");
+            sb.Append(" ");
+            sb.Append($"{translatableField.TranslationsQueryName()}");
+            if (index < translatableFields.Count - 1)
+                sb.Append(",");
+            index++;
+        }
+        
+        sb.Append(" ");
         
         // Main table
         sb.Append($"FROM {reflection.MainTableReflection.QueryName()} as {reflection.MainTableReflection.QueryName()}");
         
         // Additional tables
-        var additionalTables = reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
         foreach (var column in additionalTables)
         {
             ITableReflection? tableReflection = column.ForeignKeyTable();
@@ -87,19 +156,37 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             IColumnReflection? columnReflection = column.ForeignKeyColumn();
             if (columnReflection == null)
                 throw new ReflectionException($"Foreign key column not found for {column.ForeignKeyName()}");
-            
+
             sb.Append(" ");
             sb.Append("LEFT JOIN");
             sb.Append(" ");
-            sb.Append($"{tableReflection.QueryName()}");
+            sb.Append($"{tableReflection.QueryName()} as {GetTableSynonym(column)}");
             sb.Append(" ");
             sb.Append("ON");
             sb.Append(" ");
-            sb.Append($"{tableReflection.QueryName()}.{columnReflection.QueryName()}");
+            sb.Append($"{reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
             sb.Append(" ");
             sb.Append("=");
             sb.Append(" ");
-            sb.Append($"{reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+            sb.Append($"{GetTableSynonym(column)}.{columnReflection.QueryName()}");
+        }
+        
+        sb.Append($" ");
+        foreach (var column in allTranslationJoins)
+        {
+            var translationsTable = column.ForeignKeyTable().TranslationsTableQueryName();
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{translationsTable} as {GetTranslationsTableSynonym(column)}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{GetTableSynonym(column)}.{column.QueryName()}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{GetTranslationsTableSynonym(column)}.content_id");
         }
         
         sb.Append($" ");
@@ -118,12 +205,58 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
                 sb.Append(", ");
             sb.Append(" ");
         }
+        
+        if (allTranslationJoins.Count > 0)
+        {
+            sb.Append(" ");
+            sb.Append("GROUP BY");
+            sb.Append(" ");
+            var connectedTableColumns = reflection.MainTableReflection.Columns().ToList();
+            for (int i = 0; i < connectedTableColumns.Count; i++)
+            {
+                var column = connectedTableColumns[i];
+                sb.Append($"{reflection.MainTableReflection.QueryName()}.{column.QueryName()}");
+                if (i < connectedTableColumns.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+            }
+
+            if (additionalColumns.Count > 0)
+            {
+                sb.Append(",");
+                sb.Append(" ");
+            }
+            
+            for (int i = 0; i < additionalColumns.Count; i++)
+            {
+                var column = additionalColumns[i];
+                sb.Append($"{GetTableSynonym(column)}.{column.QueryName()}");
+                if (i < additionalColumns.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+            }
+        }
+        
         sb.Append(";");
+        
         return sb.ToString();
     }
     
     private string ConnectedTableSelectQuery(IConnectedTable connectedTable)
     {
+        
+        var additionalTables = connectedTable.TableReflection().ColumnsWithForeignKey().ToList();
+        var additionalColumns = connectedTable.TableReflection().AdditionalFields().ToList();
+
+        List<IColumnReflection> allTranslationJoins = new List<IColumnReflection>();
+        var translatableFields = connectedTable.TableReflection().TranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                allTranslationJoins.Add(translatableField);
+            }
+        }
         
         StringBuilder sb = new StringBuilder();
         sb.Append($"SELECT");
@@ -139,65 +272,114 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             sb.Append(" ");
         }
         
-        // additional fields
-        var columnsWithForeignKey = connectedTable.TableReflection().ColumnsWithForeignKey();
-        Dictionary<IColumnReflection, IColumnReflection> allAdditionalFields = new ();
-        var withForeignKey = columnsWithForeignKey.ToList();
-        foreach (var column in withForeignKey)
+        if (additionalColumns.Count > 0)
+            sb.Append(",");
+        
+        for (int i = 0; i < additionalColumns.Count; i++)
         {
-            string? foreignKeyName = column.ForeignKeyName();
-            if (foreignKeyName == null)
-                throw new ReflectionException($"Foreign key name not found for {column.Name()}");
-            foreach (IColumnReflection additionalField in connectedTable.TableReflection().ColumnsWithAdditionalInfo(foreignKeyName))
+            var column = additionalColumns[i];
+            ITableReflection foreignKeyTable = column.ForeignKeyTable();
+            sb.Append($"{GetTableSynonym(column)}.{column.QueryName()} as {foreignKeyTable.QueryName()}_{column.QueryName()}");
+            if (i < additionalColumns.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+        }
+        
+        foreach (var translatableField in translatableFields)
+        {
+            if (translatableField.HasForeignKeyTable())
             {
-                allAdditionalFields.Add(additionalField, column);
+                sb.Append(", ");
+                break;
             }
         }
         
-        if (allAdditionalFields.Count > 0)
-            sb.Append(",");
-
-        int index0 = 0;
-        foreach (var keyValue in allAdditionalFields)
+        int index = 0;
+        bool atLeastOneTranslationJoin = false;
+        foreach (var translatableField in translatableFields)
         {
-            IColumnReflection additionalField = keyValue.Key;
-            IColumnReflection column = keyValue.Value;
-            ITableReflection? foreignKeyTable = column.ForeignKeyTable();
-            if (foreignKeyTable == null)
-                throw new ReflectionException($"Foreign key table not found for {additionalField.Name()}");
-            sb.Append($"{foreignKeyTable.QueryName()}.{additionalField.QueryName()} as {foreignKeyTable.QueryName()}_{additionalField.QueryName()}");
-            if (index0 < allAdditionalFields.Count - 1)
-                sb.Append(", ");
+            if (!translatableField.HasForeignKeyTable())
+            {
+                index++;
+                continue;
+            }
+            atLeastOneTranslationJoin = true;
+            var field = translatableField.QueryName();
+            var table = translatableField.ForeignKeyTable().QueryName();
+            var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+            if (translationsTable == null)
+            {
+                throw new ReflectionException($"Translations table not found for column {field} in table {table}");
+            }
+            sb.Append("jsonb_agg");
+            sb.Append("(");
+            sb.Append("jsonb_build_object");
+            sb.Append("(");
+            sb.Append("'language_id'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.language_id");
+            sb.Append(",");
+            sb.Append("'content_id'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.content_id");
+            sb.Append(",");
+            sb.Append("'content'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.content");
+            sb.Append(")");
+            sb.Append(")");
             sb.Append(" ");
-            index0++;
+            sb.Append("as");
+            sb.Append(" ");
+            sb.Append($"{translatableField.TranslationsQueryName()}");
+            if (index < translatableFields.Count - 1)
+                sb.Append(",");
+            index++;
         }
+        sb.Append(" ");
         
         // Main table
         sb.Append($"FROM {connectedTable.QueryName()} as {connectedTable.QueryName()}");
         
+        sb.Append($" ");
         // Additional tables
-        foreach (var column in withForeignKey)
+        foreach (var column in additionalTables)
         {
-            ITableReflection? foreignKeyTable = column.ForeignKeyTable();
-            if (foreignKeyTable == null)
-                throw new ReflectionException($"Foreign key table not found for {column.ForeignKeyName()}");
-            IColumnReflection? foreignKeyColumn = column.ForeignKeyColumn();
-            if (foreignKeyColumn == null)
-                throw new ReflectionException($"Foreign key column not found for {column.ForeignKeyName()}");
-            
             sb.Append(" ");
             sb.Append("LEFT JOIN");
             sb.Append(" ");
-            sb.Append($"{foreignKeyTable.QueryName()}");
+            sb.Append($"{column.ForeignKeyTable().QueryName()} as {GetTableSynonym(column)}");
             sb.Append(" ");
             sb.Append("ON");
             sb.Append(" ");
-            sb.Append($"{foreignKeyTable.QueryName()}.{foreignKeyColumn.QueryName()}");
+            sb.Append($"{connectedTable.QueryName()}.{column.QueryName()}");
             sb.Append(" ");
             sb.Append("=");
             sb.Append(" ");
-            sb.Append($"{connectedTable.TableReflection().QueryName()}.{column.QueryName()}");
+            sb.Append($"{GetTableSynonym(column)}.{column.ForeignKeyColumn().QueryName()}");
         }
+        
+        sb.Append($" ");
+        
+        foreach (var column in allTranslationJoins)
+        {
+            var field = column.QueryName();
+            var table = column.ForeignKeyTable().QueryName();
+            var translationsTable = column.ForeignKeyTable().TranslationsTableQueryName();
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{translationsTable} as {GetTranslationsTableSynonym(column)}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{GetTableSynonym(column)}.{field}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{GetTranslationsTableSynonym(column)}.content_id");
+        }
+        sb.Append($" ");
         
         sb.Append($" ");
         sb.Append($"WHERE");
@@ -220,8 +402,115 @@ public class PostgresqlSelectByKeyQuery(DatabaseObjectReflection reflection, IKe
             }
             sb.Append(" ");
         }
+        
+        if (atLeastOneTranslationJoin)
+        {
+            sb.Append(" ");
+            sb.Append("GROUP BY");
+            sb.Append(" ");
+            int index200 = 0;
+            for (int i = 0; i < connectedTableColumns.Count; i++)
+            {
+                var column = connectedTableColumns[i];
+                sb.Append($"{connectedTable.TableReflection().QueryName()}.{column.QueryName()}");
+                if (index200 < connectedTableColumns.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+                index200++;
+            }
+
+            if (additionalColumns.Count > 0)
+            {
+                sb.Append(",");
+                sb.Append(" ");
+            }
+            
+            index200 = 0;
+            foreach (var column in additionalColumns)
+            {
+                sb.Append($"{GetTableSynonym(column)}.{column.QueryName()}");
+                if (index200 < additionalColumns.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+                index200++;
+            }
+        }
+        
         sb.Append(";");
         return sb.ToString();
+    }
+
+    private void FillReplacements(ITableReflection tableReflection)
+    {
+        _tableReplacements.Clear();
+        _translationsTableReplacements.Clear();
+        var additionalColumns = tableReflection.ColumnsWithForeignKey().ToList();
+        List<String[]> allTranslationJoins = new List<String[]>();
+        var translatableFields = tableReflection.TranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                var field = translatableField.QueryName();
+                var table = translatableField.ForeignKeyTable().QueryName();
+                var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+                allTranslationJoins.Add([translationsTable, table, field]);
+            }
+        }
+
+        int a = 1;
+        foreach (var column in additionalColumns)
+        {
+            string field = column.QueryName();
+            string table = column.Table().QueryName();
+            string searchField = $"{table}.{field}";
+            _tableReplacements.Add(searchField, $"{column.ForeignKeyTable().QueryName()}_{a}");
+            a++;
+        }
+        foreach (var column in translatableFields)
+        {
+            if (column.HasForeignKeyTable())
+            {
+                string field = column.QueryName();
+                string table = column.ForeignKeyTable().QueryName();
+                string searchField = $"{table}.{field}";
+                _tableReplacements.Add(searchField, $"{column.ForeignKeyTable().QueryName()}_{a}");
+                _translationsTableReplacements.Add(searchField, $"{column.TranslationsQueryName()}_{a}");
+                a++;
+            }
+        }
+    }
+
+    private string GetTableSynonym(IColumnReflection column)
+    {
+        string field = column.QueryName();
+        if (column.HasForeignKeyTable())
+        {
+            IColumnReflection foreignKeyColumn = column.Table().GetForeignKeyColumn(column.ForeignKeyName());
+            field = foreignKeyColumn.QueryName();
+        }
+        
+        string table = column.Table().QueryName();
+        string queryName = column.ForeignKeyTable().QueryName();
+        string searchField = $"{table}.{field}";
+        if (_tableReplacements.ContainsKey(searchField))
+        {
+            queryName = _tableReplacements[searchField];
+        }
+        return queryName;
+    }
+    
+    private string GetTranslationsTableSynonym(IColumnReflection column)
+    {
+        string field = column.QueryName();
+        string table = column.ForeignKeyTable().QueryName();
+        string queryName = column.TranslationsQueryName();
+        string searchField = $"{table}.{field}";
+        if (_translationsTableReplacements.ContainsKey(searchField))
+        {
+            queryName = _translationsTableReplacements[searchField];
+        }
+        return queryName;
     }
     
 }
