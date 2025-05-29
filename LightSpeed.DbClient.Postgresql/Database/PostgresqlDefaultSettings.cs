@@ -12,7 +12,7 @@ public static class PostgresqlDefaultSettings
     internal static readonly Dictionary<Type, string> DefaultColumnTypes = new()
     {
         { typeof(Guid),    "UUID" },
-        { typeof(string),  "VARCHAR(255)" },
+        { typeof(string),  "TEXT" },
         { typeof(bool),    "BOOLEAN" },
         { typeof(byte),    "BYTEA" },
         { typeof(DateTime),    "TIMESTAMP WITH TIME ZONE" },
@@ -21,7 +21,17 @@ public static class PostgresqlDefaultSettings
         { typeof(float),    "REAL" },
         { typeof(short),    "SMALLINT" },
         { typeof(int),    "INTEGER" },
-        { typeof(long),    "BIGINT" }
+        { typeof(long),    "BIGINT" },
+        { typeof(Guid?),    "UUID" },
+        { typeof(bool?),    "BOOLEAN" },
+        { typeof(byte ?),    "BYTEA" },
+        { typeof(DateTime?),    "TIMESTAMP WITH TIME ZONE" },
+        { typeof(decimal ?),    "NUMERIC" },
+        { typeof(double?),    "DOUBLE PRECISION" },
+        { typeof(float ?),    "REAL" },
+        { typeof(short?),    "SMALLINT" },
+        { typeof(int?),    "INTEGER" },
+        { typeof(long?),    "BIGINT" }
     };
     
     public static NpgsqlDbType GetSqlDbType(Type type, object value)
