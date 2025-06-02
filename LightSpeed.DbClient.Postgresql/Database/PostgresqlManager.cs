@@ -43,7 +43,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         List<T> sortedElements = new List<T>();
         Dictionary<IKey, T> elements = new ();
         
-        PostgresqlSelectListObjectsQuery<T> countQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper);
+        PostgresqlCountQuery<T> countQuery = new PostgresqlCountQuery<T>(filters, Reflection, _mapper);
         PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Reference, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
@@ -53,7 +53,16 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
 
         await using PostgresqlCommand cmd1 = new PostgresqlCommand(countQuery, (PostgresqlConnection)Connection, transaction);
-        int count = await cmd1.ExecuteNonQueryAsync();
+        await using var countReader = await cmd1.ExecuteReaderAsync();
+        long count = 0;
+        if (await countReader.ReadAsync())
+        {
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
+        }
+        await countReader.CloseAsync();
         if (count == 0)
         {
             if (page != null && limit != null)
@@ -79,6 +88,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             ProcessConnectedTable(connectedTable, elements, reader);
         }
+        await reader.CloseAsync();
         foreach (var element in elements.Values)
         {
             element.BeforeGetReference();
@@ -98,7 +108,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         List<T> sortedElements = new List<T>();
         Dictionary<IKey, T> elements = new ();
         
-        PostgresqlSelectListObjectsQuery<T> countQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper);
+        PostgresqlCountQuery<T> countQuery = new PostgresqlCountQuery<T>(filters, Reflection, _mapper);
         PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
@@ -107,7 +117,16 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             transaction = (PostgresqlTransaction)Transaction;
         }
         await using PostgresqlCommand cmd1 = new PostgresqlCommand(countQuery, (PostgresqlConnection)Connection, transaction);
-        int count = await cmd1.ExecuteNonQueryAsync();
+        await using var countReader = await cmd1.ExecuteReaderAsync();
+        long count = 0;
+        if (await countReader.ReadAsync())
+        {
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
+        }
+        await countReader.CloseAsync();
         if (count == 0)
         {
             if (page != null && limit != null)
@@ -137,7 +156,8 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             await ProcessConnectedTable(connectedTable, elements, reader);
         }
-
+        await reader.CloseAsync();
+        
         foreach (var element in elements.Values)
         {
             element.BeforeGetObject();
@@ -209,18 +229,17 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         return await GetListObjectsAsync(new Filters<T>(), new Sorting<T>(), page, limit); 
     }
 
-    public override async Task<int> CountAsync()
+    public override async Task<long> CountAsync()
     {
         return await CountAsync(new Filters<T>());
     }
 
-    public override async Task<int> CountAsync(IFilters<T> filters)
+    public override async Task<long> CountAsync(IFilters<T> filters)
     {
-        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(
+        PostgresqlCountQuery<T> selectListQuery = new PostgresqlCountQuery<T>(
             filters, 
-            new Sorting<T>(), 
-            ModelType.Object, 
-            Reflection, _mapper
+            Reflection, 
+            _mapper
         );
 
         PostgresqlTransaction? transaction = null;
@@ -229,7 +248,17 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             transaction = (PostgresqlTransaction)Transaction;
         }
         await using PostgresqlCommand cmd = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
-        return await cmd.ExecuteNonQueryAsync();
+        await using var countReader = await cmd.ExecuteReaderAsync();
+        long count = 0;
+        if (await countReader.ReadAsync())
+        {
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
+        }
+        await countReader.CloseAsync();
+        return count;
     }
 
     public override async Task<T> GetByKeyAsync(IKey key)
@@ -281,6 +310,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                     throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
                 }
             }
+            await reader.CloseAsync();
         } 
         catch (Exception e)
         {
@@ -307,16 +337,18 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     public override async Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000)
     {
-        
-        // TODO Check that all elements are objects
-        // TODO create a 100k limit
+        var databaseObjects = elements.ToList();
+        if (databaseObjects.Count() > 100000)
+        {
+            throw new NotSupportedException("Saving more then 100k elements in one batch is not supported");
+        }
 
-        foreach (var element in elements)
+        foreach (var element in databaseObjects)
         {
             element.BeforeSave();
         }
         
-        List<T> listOfElements = elements.ToList();
+        List<T> listOfElements = databaseObjects.ToList();
         IEnumerable<T[]> chunks = listOfElements.Chunk(chunkSize);
         
         PostgresqlTransaction? transaction = null;
@@ -367,7 +399,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                             Type listType = typeof(List<>).MakeGenericType(keyElement.Column().Type());
                             object? createdList = Activator.CreateInstance(listType);
                             if (createdList == null)
-                                throw new ReflectionException($"Error creating list for type {keyElement.Column().Type().Name}"); // TODO not ReflectionException
+                                throw new MappingException($"Error creating list for type {keyElement.Column().Type().Name}");
                             list = (IList) createdList;
                         }
                         else
@@ -375,7 +407,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                             list = (IList) value;
                         }
                         if (list == null)
-                            throw new ReflectionException($"Error creating list for type {keyElement.Column().Type().Name}"); // TODO not ReflectionException
+                            throw new MappingException($"Error creating list for type {keyElement.Column().Type().Name}");
                         list.Add(keyElement.Value());
                         filter =  new Filter<T>(keyElement.Column(), ComparisonOperator.In, list);
                     }
@@ -424,7 +456,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
     private void ConvertToTable(PropertyInfo property, T element, List<IDatabaseObjectTableElement> list)
     {
         Type listType = typeof(List<IDatabaseObjectTableElement>);
-        ConstructorInfo? constructor = property.PropertyType.GetConstructor([listType]); // TODO move to cache
+        ConstructorInfo? constructor = property.PropertyType.GetConstructor([listType]); // TODO performance issues?
         if (constructor == null)
             throw new ReflectionException($"Constructor not found for type {property.PropertyType.Name}");
         property.SetValue(element, constructor.Invoke([list]));

@@ -17,12 +17,12 @@ public class ColumnReflection : IColumnReflection
     private readonly bool _isPartOfPrimaryKey;
     private readonly bool _isPartOfOwnerKey;
     private readonly bool _isTranslatable;
-    
-    private readonly List<IColumnReflection?> _additionalFields;
     private readonly string? _relation;
-    private readonly ITableReflection? _foreignKeyTable;
+    private readonly IForeignKeyTable? _foreignKeyTable;
+    private readonly string? _foreignKeyColumnName;
+    private readonly Type? _foreignKeyType;
     private readonly string? _foreignKeyName;
-    private readonly IColumnReflection? _foreignKeyColumn;
+    private readonly string? _addInfoColumnName;
     
     internal ColumnReflection(PropertyInfo property, ITableReflection tableReflection)
     {
@@ -31,7 +31,6 @@ public class ColumnReflection : IColumnReflection
         _name = property.Name.ToLower();
         _type = property.PropertyType;
         _property = property;
-        _additionalFields = new List<IColumnReflection?>();
         _isTranslatable = _type == typeof(ITranslatable) || _type.GetInterfaces().Contains(typeof(ITranslatable));
         
         ColumnAttribute? column = property.GetCustomAttribute<ColumnAttribute>();
@@ -62,12 +61,10 @@ public class ColumnReflection : IColumnReflection
             if (foreignKey != null)
             {
                 
-                Type type = foreignKey.Model;
-                DatabaseObjectReflection reflection = ClientSettings.GetReflection(type);
+                _foreignKeyType = foreignKey.Model;
+                _foreignKeyTable = new ForeignKeyTable(_foreignKeyType);
                 _foreignKeyName = foreignKey.Name;
-                _foreignKeyTable = reflection.MainTableReflection;
-                _foreignKeyColumn = _foreignKeyTable.GetColumnReflection(foreignKey.ColumnName);
-                
+                _foreignKeyColumnName = foreignKey.ColumnName;
             }
             
         }
@@ -76,12 +73,10 @@ public class ColumnReflection : IColumnReflection
         if (additionalInfo != null)
         {
             IColumnReflection foreignKeyColumn = _tableReflection.GetForeignKeyColumn(additionalInfo.ForeignKey);
-
-            ITableReflection? foreignKeyTable = foreignKeyColumn.ForeignKeyTable();
-            if (foreignKeyTable == null)
-                throw new ReflectionException($"Foreign key table {foreignKeyColumn.ForeignKeyName()} not found");
+            _foreignKeyTable = foreignKeyColumn.ForeignKeyTableLink();
             
-            DatabaseObjectReflection reflection = ClientSettings.GetReflection(foreignKeyTable.Type());
+            if (foreignKeyColumn == null)
+                throw new ReflectionException($"Foreign key column {additionalInfo.ForeignKey} not found");
             
             if (additionalInfo.Field == null)
                 throw new ReflectionException($"Field name not found in {additionalInfo.ForeignKey} key");
@@ -89,18 +84,7 @@ public class ColumnReflection : IColumnReflection
             _foreignKeyName = additionalInfo.ForeignKey;
             _queryName = additionalInfo.Field.ToLower();
             
-            _foreignKeyTable = reflection.MainTableReflection;
-            if (_foreignKeyTable == null)
-                throw new ReflectionException($"Foreign key table {additionalInfo.ForeignKey} not found");
-            
-            _foreignKeyColumn = _foreignKeyTable.GetColumnReflection(additionalInfo.Field);
-                
-            IColumnReflection? additionalColumn = reflection.GetColumnReflection(additionalInfo.Field);
-            if (additionalColumn == null)
-            {
-                throw new ReflectionException($"Column {additionalInfo.Field} not found in table {_foreignKeyTable.Name()}");
-            } 
-            _additionalFields.Add(additionalColumn);
+            _addInfoColumnName = additionalInfo.Field;
         }
 
     }
@@ -144,12 +128,7 @@ public class ColumnReflection : IColumnReflection
     {
         return _isPartOfOwnerKey;
     }
-
-    public bool HasAdditionalFields()
-    {
-        return _additionalFields.Count > 0;
-    }
-
+    
     public bool IsTranslatable()
     {
         return _isTranslatable;
@@ -159,12 +138,7 @@ public class ColumnReflection : IColumnReflection
     {
         return _foreignKeyTable != null;
     }
-
-    public IEnumerable<IColumnReflection?> AdditionalFields()
-    {
-        return _additionalFields;
-    }
-
+    
     public string ForeignKeyName()
     {
         return _foreignKeyName ?? throw new ReflectionException($"Foreign key name not found for column {_name}");
@@ -172,12 +146,17 @@ public class ColumnReflection : IColumnReflection
 
     public ITableReflection ForeignKeyTable()
     {
-        return _foreignKeyTable ?? throw new ReflectionException($"Foreign key table not found for column {_name}");
+        return _foreignKeyTable?.TableReflection() ?? throw new ReflectionException($"Foreign key table not found for column {_name}");
+    }
+
+    public IForeignKeyTable ForeignKeyTableLink()
+    {
+        return _foreignKeyTable ?? throw new ReflectionException($"Foreign key table link not found for column {_name}");
     }
 
     public IColumnReflection ForeignKeyColumn()
     {
-        return _foreignKeyColumn ?? throw new ReflectionException($"Foreign key column not found for column {_name}");
+        return ClientSettings.GetReflection(_foreignKeyType).MainTableReflection.GetColumnReflection(_foreignKeyColumnName) ?? throw new ReflectionException($"Foreign key column not found for column {_name}");
     }
 
     public ITableReflection Table()
