@@ -71,7 +71,7 @@ public class PostgresqlCountQuery<T>: IQuery where T : IDatabaseElement
         // main fields
         // TODO possible issue with calculation due to rows duplications 
         sb.Append($"sum(1) as count");
-
+        sb.Append($" ");
         // Main table
         sb.Append($"FROM {_reflection.MainTableReflection.QueryName()} as {_reflection.MainTableReflection.QueryName()}");
         

@@ -57,7 +57,10 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         long count = 0;
         if (await countReader.ReadAsync())
         {
-            count = (long) countReader.GetValue(0);
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
         }
         await countReader.CloseAsync();
         if (count == 0)
@@ -85,6 +88,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             ProcessConnectedTable(connectedTable, elements, reader);
         }
+        await reader.CloseAsync();
         foreach (var element in elements.Values)
         {
             element.BeforeGetReference();
@@ -117,7 +121,10 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         long count = 0;
         if (await countReader.ReadAsync())
         {
-            count = (long) countReader.GetValue(0);
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
         }
         await countReader.CloseAsync();
         if (count == 0)
@@ -149,7 +156,8 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             await ProcessConnectedTable(connectedTable, elements, reader);
         }
-
+        await reader.CloseAsync();
+        
         foreach (var element in elements.Values)
         {
             element.BeforeGetObject();
@@ -221,12 +229,12 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         return await GetListObjectsAsync(new Filters<T>(), new Sorting<T>(), page, limit); 
     }
 
-    public override async Task<int> CountAsync()
+    public override async Task<long> CountAsync()
     {
         return await CountAsync(new Filters<T>());
     }
 
-    public override async Task<int> CountAsync(IFilters<T> filters)
+    public override async Task<long> CountAsync(IFilters<T> filters)
     {
         PostgresqlCountQuery<T> selectListQuery = new PostgresqlCountQuery<T>(
             filters, 
@@ -240,7 +248,17 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             transaction = (PostgresqlTransaction)Transaction;
         }
         await using PostgresqlCommand cmd = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
-        return await cmd.ExecuteNonQueryAsync();
+        await using var countReader = await cmd.ExecuteReaderAsync();
+        long count = 0;
+        if (await countReader.ReadAsync())
+        {
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
+        }
+        await countReader.CloseAsync();
+        return count;
     }
 
     public override async Task<T> GetByKeyAsync(IKey key)
@@ -292,6 +310,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                     throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
                 }
             }
+            await reader.CloseAsync();
         } 
         catch (Exception e)
         {

@@ -58,8 +58,8 @@ public abstract class Manager<T>(IConnection connection, ITransaction? transacti
         int? limit = null);
     public abstract Task<IDataSelection<T>> GetListObjectsAsync(int? page = null, int? limit = null);
 
-    public abstract Task<int> CountAsync(IFilters<T> filters);
-    public abstract Task<int> CountAsync();
+    public abstract Task<long> CountAsync(IFilters<T> filters);
+    public abstract Task<long> CountAsync();
     public abstract Task<T> GetByKeyAsync(IKey key);
     public abstract Task<T> SaveAsync(T element);
     public abstract Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000);
