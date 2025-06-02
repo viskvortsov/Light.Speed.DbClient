@@ -43,7 +43,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         List<T> sortedElements = new List<T>();
         Dictionary<IKey, T> elements = new ();
         
-        PostgresqlSelectListObjectsQuery<T> countQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper);
+        PostgresqlCountQuery<T> countQuery = new PostgresqlCountQuery<T>(filters, Reflection, _mapper);
         PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Reference, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
@@ -53,7 +53,16 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
 
         await using PostgresqlCommand cmd1 = new PostgresqlCommand(countQuery, (PostgresqlConnection)Connection, transaction);
-        int count = await cmd1.ExecuteNonQueryAsync();
+        await using var countReader = await cmd1.ExecuteReaderAsync();
+        long count = 0;
+        if (await countReader.ReadAsync())
+        {
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
+        }
+        await countReader.CloseAsync();
         if (count == 0)
         {
             if (page != null && limit != null)
@@ -79,6 +88,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             ProcessConnectedTable(connectedTable, elements, reader);
         }
+        await reader.CloseAsync();
         foreach (var element in elements.Values)
         {
             element.BeforeGetReference();
@@ -98,7 +108,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         List<T> sortedElements = new List<T>();
         Dictionary<IKey, T> elements = new ();
         
-        PostgresqlSelectListObjectsQuery<T> countQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper);
+        PostgresqlCountQuery<T> countQuery = new PostgresqlCountQuery<T>(filters, Reflection, _mapper);
         PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(filters, sortBy, ModelType.Object, Reflection, _mapper, page, limit);
 
         PostgresqlTransaction? transaction = null;
@@ -107,7 +117,16 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             transaction = (PostgresqlTransaction)Transaction;
         }
         await using PostgresqlCommand cmd1 = new PostgresqlCommand(countQuery, (PostgresqlConnection)Connection, transaction);
-        int count = await cmd1.ExecuteNonQueryAsync();
+        await using var countReader = await cmd1.ExecuteReaderAsync();
+        long count = 0;
+        if (await countReader.ReadAsync())
+        {
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
+        }
+        await countReader.CloseAsync();
         if (count == 0)
         {
             if (page != null && limit != null)
@@ -137,7 +156,8 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         {
             await ProcessConnectedTable(connectedTable, elements, reader);
         }
-
+        await reader.CloseAsync();
+        
         foreach (var element in elements.Values)
         {
             element.BeforeGetObject();
@@ -209,18 +229,17 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         return await GetListObjectsAsync(new Filters<T>(), new Sorting<T>(), page, limit); 
     }
 
-    public override async Task<int> CountAsync()
+    public override async Task<long> CountAsync()
     {
         return await CountAsync(new Filters<T>());
     }
 
-    public override async Task<int> CountAsync(IFilters<T> filters)
+    public override async Task<long> CountAsync(IFilters<T> filters)
     {
-        PostgresqlSelectListObjectsQuery<T> selectListQuery = new PostgresqlSelectListObjectsQuery<T>(
+        PostgresqlCountQuery<T> selectListQuery = new PostgresqlCountQuery<T>(
             filters, 
-            new Sorting<T>(), 
-            ModelType.Object, 
-            Reflection, _mapper
+            Reflection, 
+            _mapper
         );
 
         PostgresqlTransaction? transaction = null;
@@ -229,7 +248,17 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             transaction = (PostgresqlTransaction)Transaction;
         }
         await using PostgresqlCommand cmd = new PostgresqlCommand(selectListQuery, (PostgresqlConnection)Connection, transaction);
-        return await cmd.ExecuteNonQueryAsync();
+        await using var countReader = await cmd.ExecuteReaderAsync();
+        long count = 0;
+        if (await countReader.ReadAsync())
+        {
+            // Value may be System.DBNull
+            object value = countReader.GetValue(0);
+            if (value is long)
+                count = (long) value;
+        }
+        await countReader.CloseAsync();
+        return count;
     }
 
     public override async Task<T> GetByKeyAsync(IKey key)
@@ -281,6 +310,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                     throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
                 }
             }
+            await reader.CloseAsync();
         } 
         catch (Exception e)
         {

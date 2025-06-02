@@ -531,7 +531,7 @@ public class Tests
         //Assert.That(product1.Translations.Count, Is.EqualTo(3));
         //Assert.That(product1.Name.AllTranslations().Count, Is.EqualTo(2));
         
-        IEnumerable<Product> products2 = await productManager.GetListObjectsAsync(1, 100);
+        IEnumerable<Product> products2 = await productManager.GetListObjectsAsync(1, 1000);
         var list4 = products2.ToList();
         
         //var product2 = list4[0];
@@ -552,7 +552,7 @@ public class Tests
         Assert.That(list30.Count, Is.EqualTo(1));
         Assert.That(product30.Name.GetTranslation(spanishMock), Is.EqualTo("Producto 1 Versace"));
         
-        int n = await productManager.CountAsync(filters);
+        long n = await productManager.CountAsync(filters);
         Assert.That(n, Is.EqualTo(1));
         n = await productManager.CountAsync();
         Assert.That(n, Is.EqualTo(2));

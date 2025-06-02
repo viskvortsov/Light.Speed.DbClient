@@ -80,6 +80,40 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             i++;
         }
         
+        var translatableFields = reflection.TranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                continue;
+            }
+
+            var valueFromDb = values[i];
+            var value = MapFromJson(valueFromDb);
+            ITranslatable translatable = (ITranslatable)translatableField.Property().GetValue(element);
+            foreach (var translation in value)
+            {
+                if (translation.language_id != null && translation.content != null)
+                {
+                    translatable!.AddTranslation((Guid)translation.language_id, translation.content);
+                }
+            }
+
+            var property = translatableField.Property();
+            try
+            {
+                property.SetValue(element, translatable);
+            }
+            catch (Exception ex)
+            {
+                throw new DatabaseException(
+                    $"Error trying to set value {value} to property {property.Name} for type {reflection.Name()}",
+                    ex);
+            }
+
+            i++;
+        }
+
         return element;
     }
 

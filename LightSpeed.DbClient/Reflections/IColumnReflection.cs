@@ -18,5 +18,6 @@ public interface IColumnReflection
     bool HasForeignKeyTable();
     public string ForeignKeyName();
     ITableReflection ForeignKeyTable();
+    IForeignKeyTable ForeignKeyTableLink();
     IColumnReflection ForeignKeyColumn();
 }

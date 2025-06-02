@@ -30,8 +30,8 @@ public interface IManager<T> : IDisposable, IAsyncDisposable where T : IDatabase
     Task<IDataSelection<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
     Task<IDataSelection<T>> GetListObjectsAsync(int? page = null, int? limit = null);
     Task<T> GetByKeyAsync(IKey key);
-    Task<int> CountAsync(IFilters<T> filters);
-    Task<int> CountAsync();
+    Task<long> CountAsync(IFilters<T> filters);
+    Task<long> CountAsync();
     Task<T> SaveAsync(T element);
     Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000);
     Task<int> DeleteAsync();
