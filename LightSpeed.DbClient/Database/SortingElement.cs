@@ -13,7 +13,7 @@ public class SortingElement<T> : ISortingElement<T> where T : IDatabaseElement
     public SortingElement(string name, SortingDirection direction)
     {
         DatabaseObjectReflection reflection = ClientSettings.GetReflection(typeof(T));
-        _column = reflection.GetColumnReflection(name);
+        _column = reflection.GetColumnReflectionByQueryName(name);
         _direction = direction;
     }
     
