@@ -476,8 +476,23 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             values.Add(reader.GetValue(i));
             i += 1;
         }
+        foreach (IColumnReflection column in reflection.AdditionalFields2())
+        {
+            values.Add(reader.GetValue(i));
+            i += 1;
+        }
         var translatableFields = reflection.TranslatableColumns().ToList();
         foreach (var translatableField in translatableFields)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                continue;
+            }
+            values.Add(reader.GetValue(i));
+            i++;
+        }
+        var translatableFields2 = reflection.AdditionalTranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields2)
         {
             if (!translatableField.HasForeignKeyTable())
             {

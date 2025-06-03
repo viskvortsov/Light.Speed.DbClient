@@ -16,8 +16,13 @@ public interface IColumnReflection
     bool IsPartOfOwnerKey();
     bool IsTranslatable();
     bool HasForeignKeyTable();
+    bool HasAdditionalForeignKeyTable();
     public string ForeignKeyName();
+    public string AdditionalForeignKeyName();
     ITableReflection ForeignKeyTable();
+    ITableReflection AdditionalForeignKeyTable();
     IForeignKeyTable ForeignKeyTableLink();
     IColumnReflection ForeignKeyColumn();
+    IColumnReflection AdditionalForeignKeyColumn();
+    string AdditionalForeignKeyColumnName();
 }

@@ -80,8 +80,63 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             i++;
         }
         
+        // additional fields
+        var additionalFields2 = reflection.AdditionalFields2().ToList();
+        
+        foreach (var column in additionalFields2)
+        {
+            var property = column.Property();
+            var type = column.Type();
+            
+            try
+            {
+                var valueFromDb = values[i];
+                var value = MapFromDatabaseValue(valueFromDb, type);
+                property.SetValue(element, value);
+            }
+            catch (Exception ex)
+            {
+                throw new DatabaseException($"Error trying to set value to property {property.Name} for type {reflection.Name()}", ex);
+            }
+            i++;
+        }
+        
         var translatableFields = reflection.TranslatableColumns().ToList();
         foreach (var translatableField in translatableFields)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                continue;
+            }
+
+            var valueFromDb = values[i];
+            var value = MapFromJson(valueFromDb);
+            ITranslatable translatable = (ITranslatable)translatableField.Property().GetValue(element);
+            foreach (var translation in value)
+            {
+                if (translation.language_id != null && translation.content != null)
+                {
+                    translatable!.AddTranslation((Guid)translation.language_id, translation.content);
+                }
+            }
+
+            var property = translatableField.Property();
+            try
+            {
+                property.SetValue(element, translatable);
+            }
+            catch (Exception ex)
+            {
+                throw new DatabaseException(
+                    $"Error trying to set value {value} to property {property.Name} for type {reflection.Name()}",
+                    ex);
+            }
+
+            i++;
+        }
+        
+        var translatableFields2 = reflection.AdditionalTranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields2)
         {
             if (!translatableField.HasForeignKeyTable())
             {
@@ -156,8 +211,53 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
             }
             i++;
         }
+        // additional fields
+        var additionalFields2 = connectedTableReflection.AdditionalFields2().ToList();
+        foreach (var column in additionalFields2)
+        {
+            var valueFromDb = values[i];
+            var value = MapFromDatabaseValue(valueFromDb, column.Type());
+            var property = column.Property();
+            try
+            {
+                property.SetValue(element, value);
+            }
+            catch (Exception ex)
+            {
+                throw new DatabaseException($"Error trying to set value {value} to property {property.Name} for type {connectedTableReflection.Name()}", ex);
+            }
+            i++;
+        }
         var translatableFields = connectedTableReflection.TranslatableColumns().ToList();
         foreach (var translatableField in translatableFields)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                continue;
+            }
+            var valueFromDb = values[i];
+            var value = MapFromJson(valueFromDb);
+            ITranslatable translatable = (ITranslatable) translatableField.Property().GetValue(element);
+            foreach (var translation in value)
+            {
+                if (translation.language_id != null && translation.content != null)
+                {
+                    translatable!.AddTranslation((Guid)translation.language_id, translation.content);
+                }
+            }
+            var property = translatableField.Property();
+            try
+            {
+                property.SetValue(element, translatable);
+            }
+            catch (Exception ex)
+            {
+                throw new DatabaseException($"Error trying to set value {value} to property {property.Name} for type {connectedTableReflection.Name()}", ex);
+            }
+            i++;
+        }
+        var translatableFields2 = connectedTableReflection.AdditionalTranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields2)
         {
             if (!translatableField.HasForeignKeyTable())
             {
