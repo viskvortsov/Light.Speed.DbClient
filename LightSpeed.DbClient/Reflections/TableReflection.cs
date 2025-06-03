@@ -18,6 +18,7 @@ public class TableReflection : ITableReflection
     private readonly List<IColumnReflection> _additionalFields = new();
     private readonly List<IColumnReflection> _additionalFields2 = new();
     private readonly List<IColumnReflection> _translatableColumns = new();
+    private readonly List<IColumnReflection> _translatableColumns2 = new();
     private readonly List<IColumnReflection> _connectedTables;
 
     public TableReflection(Type type, String queryName)
@@ -68,7 +69,8 @@ public class TableReflection : ITableReflection
         FillTables();
         FillAdditionalFields();
         FillTranslatableColumns();
-        
+        FillAdditionalTranslatableColumns();
+
     }
     
     private void FillColumns()
@@ -108,6 +110,7 @@ public class TableReflection : ITableReflection
                 _additionalFields.Add(columnReflection);
             }
         }
+        
         foreach (var property in properties)
         {
             AddInfoAdditionalAttribute? column = property.GetCustomAttribute<AddInfoAdditionalAttribute>();
@@ -171,6 +174,17 @@ public class TableReflection : ITableReflection
             }
         }
     }
+    
+    private void FillAdditionalTranslatableColumns()
+    {
+        foreach (var column in _additionalFields2)
+        {
+            if (column.IsTranslatable())
+            {
+                _translatableColumns2.Add(column);
+            }
+        }
+    }
 
     public string Name()
     {
@@ -212,6 +226,11 @@ public class TableReflection : ITableReflection
         return _translatableColumns;
     }
 
+    public IEnumerable<IColumnReflection> AdditionalTranslatableColumns()
+    {
+        return _translatableColumns2;
+    }
+
     public IEnumerable<IColumnReflection> PartsOfPrimaryKey()
     {
         
@@ -247,6 +266,11 @@ public class TableReflection : ITableReflection
         return _columns.Single(x => x.Name() == name.ToLower());
     }
 
+    public IColumnReflection? GetAdditionalColumnReflection(string name)
+    {
+        return _additionalFields.Single(x => x.Name() == name.ToLower());
+    }
+
     public IColumnReflection GetTableReflection(string name)
     {
         return _connectedTables.Single(x => x.Name() == name.ToLower());
@@ -262,11 +286,33 @@ public class TableReflection : ITableReflection
         }
         return columns;
     }
+    
+    public IEnumerable<IColumnReflection> AdditionalFieldsWithForeignKey()
+    {
+        List<IColumnReflection> columns = new ();
+        foreach (var column in _additionalFields)
+        {
+            if (column.HasAdditionalForeignKeyTable())
+                columns.Add(column);
+        }
+        return columns;
+    }
 
     public IEnumerable<IColumnReflection> ColumnsWithAdditionalInfo(string? foreignKeyName)
     {
         List<IColumnReflection> columns = new ();
         foreach (var column in _additionalFields)
+        {
+            if (column.ForeignKeyName() == foreignKeyName)
+                columns.Add(column);
+        }
+        return columns;
+    }
+    
+    public IEnumerable<IColumnReflection> ColumnsWithAdditionalInfo2(string? foreignKeyName)
+    {
+        List<IColumnReflection> columns = new ();
+        foreach (var column in _additionalFields2)
         {
             if (column.ForeignKeyName() == foreignKeyName)
                 columns.Add(column);
@@ -282,6 +328,22 @@ public class TableReflection : ITableReflection
         foreach (var column in withForeignKey)
         {
             foreach (IColumnReflection additionalField in ColumnsWithAdditionalInfo(column.ForeignKeyName()))
+            {
+                allAdditionalFields.Add(additionalField);
+            }
+        }
+
+        return allAdditionalFields;
+    }
+    
+    public IEnumerable<IColumnReflection> AdditionalFields2()
+    {
+        var columnsWithForeignKey = AdditionalFieldsWithForeignKey();
+        List<IColumnReflection> allAdditionalFields = new ();
+        var withForeignKey = columnsWithForeignKey.ToList();
+        foreach (var column in withForeignKey)
+        {
+            foreach (IColumnReflection additionalField in ColumnsWithAdditionalInfo2(column.AdditionalForeignKeyName()))
             {
                 allAdditionalFields.Add(additionalField);
             }

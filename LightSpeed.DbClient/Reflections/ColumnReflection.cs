@@ -78,7 +78,7 @@ public class ColumnReflection : IColumnReflection
         if (additionalInfo != null)
         {
             IColumnReflection foreignKeyColumn = _tableReflection.GetForeignKeyColumn(additionalInfo.ForeignKey);
-            _foreignKeyTable = foreignKeyColumn.ForeignKeyTableLink();
+            
             
             if (foreignKeyColumn == null)
                 throw new ReflectionException($"Foreign key column {additionalInfo.ForeignKey} not found");
@@ -86,7 +86,11 @@ public class ColumnReflection : IColumnReflection
             if (additionalInfo.Field == null)
                 throw new ReflectionException($"Field name not found in {additionalInfo.ForeignKey} key");
             
+            _foreignKeyTable = foreignKeyColumn.ForeignKeyTableLink();
             _foreignKeyName = additionalInfo.ForeignKey;
+            _foreignKeyType = foreignKeyColumn.Table().Type();
+            _foreignKeyColumnName = foreignKeyColumn.QueryName();
+            
             _queryName = additionalInfo.Field.ToLower();
             
             _addInfoColumnName = additionalInfo.Field;
@@ -106,15 +110,18 @@ public class ColumnReflection : IColumnReflection
         if (additionalInfo2 != null)
         {
             IColumnReflection foreignKeyColumn = _tableReflection.GetAdditionalForeignKeyColumn(additionalInfo2.ForeignKey);
-            _foreignKeyTable = foreignKeyColumn.ForeignKeyTableLink();
-            
+
             if (foreignKeyColumn == null)
                 throw new ReflectionException($"Foreign key column {additionalInfo2.ForeignKey} not found");
             
             if (additionalInfo2.Field == null)
                 throw new ReflectionException($"Field name not found in {additionalInfo2.ForeignKey} key");
             
+            _foreignKeyTable = foreignKeyColumn.ForeignKeyTableLink();
             _foreignKeyName = additionalInfo2.ForeignKey;
+            _foreignKeyType = foreignKeyColumn.Table().Type();
+            _foreignKeyColumnName = foreignKeyColumn.Name();
+            
             _queryName = additionalInfo2.Field.ToLower();
             
             _addInfoColumnName = additionalInfo2.Field;
@@ -193,6 +200,11 @@ public class ColumnReflection : IColumnReflection
         return _foreignKeyTable?.TableReflection() ?? throw new ReflectionException($"Foreign key table not found for column {_name}");
     }
 
+    public ITableReflection AdditionalForeignKeyTable()
+    {
+        return _additionalForeignKeyTable?.TableReflection() ?? throw new ReflectionException($"Foreign key table not found for column {_name}");
+    }
+
     public IForeignKeyTable ForeignKeyTableLink()
     {
         return _foreignKeyTable ?? throw new ReflectionException($"Foreign key table link not found for column {_name}");
@@ -201,6 +213,16 @@ public class ColumnReflection : IColumnReflection
     public IColumnReflection ForeignKeyColumn()
     {
         return ClientSettings.GetReflection(_foreignKeyType).MainTableReflection.GetColumnReflection(_foreignKeyColumnName) ?? throw new ReflectionException($"Foreign key column not found for column {_name}");
+    }
+    
+    public IColumnReflection AdditionalForeignKeyColumn()
+    {
+        return ClientSettings.GetReflection(_foreignKeyType).MainTableReflection.GetAdditionalColumnReflection(_foreignKeyColumnName) ?? throw new ReflectionException($"Foreign key column not found for column {_name}");
+    }
+
+    public string AdditionalForeignKeyColumnName()
+    {
+        return _additionalForeignKeyColumnName ?? throw new ReflectionException($"Foreign key column name not found for column {_name}");;
     }
 
     public ITableReflection Table()
