@@ -21,5 +21,6 @@ public interface ITableReflection
     IEnumerable<IColumnReflection> ColumnsWithAdditionalInfo(string foreignKeyName);
     IEnumerable<IColumnReflection> AdditionalFields();
     IColumnReflection GetForeignKeyColumn(string name);
+    IColumnReflection GetAdditionalForeignKeyColumn(string name);
 
 }

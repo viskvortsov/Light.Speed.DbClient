@@ -16,6 +16,7 @@ public class TableReflection : ITableReflection
     
     private readonly List<IColumnReflection> _columns;
     private readonly List<IColumnReflection> _additionalFields = new();
+    private readonly List<IColumnReflection> _additionalFields2 = new();
     private readonly List<IColumnReflection> _translatableColumns = new();
     private readonly List<IColumnReflection> _connectedTables;
 
@@ -105,6 +106,19 @@ public class TableReflection : ITableReflection
                     throw new ReflectionException($"Model {_type.Name} has multiple columns with the same name {columnReflection.Name()}");
                 }
                 _additionalFields.Add(columnReflection);
+            }
+        }
+        foreach (var property in properties)
+        {
+            AddInfoAdditionalAttribute? column = property.GetCustomAttribute<AddInfoAdditionalAttribute>();
+            if (column != null)
+            {
+                ColumnReflection columnReflection = new(property, this);
+                if (_additionalFields2.Contains(columnReflection))
+                {
+                    throw new ReflectionException($"Model {_type.Name} has multiple columns with the same name {columnReflection.Name()}");
+                }
+                _additionalFields2.Add(columnReflection);
             }
         }
         
@@ -295,5 +309,22 @@ public class TableReflection : ITableReflection
         return foreignKeyColumn;
 
     }
-    
+
+    public IColumnReflection GetAdditionalForeignKeyColumn(string name)
+    {
+        IColumnReflection? foreignKeyColumn = null;
+        foreach (var column in _additionalFields)
+        {
+            if (column.HasAdditionalForeignKeyTable() && column.AdditionalForeignKeyName().ToLower() == name.ToLower())
+            {
+                foreignKeyColumn = column;
+                break;
+            }
+        }
+        
+        if (foreignKeyColumn == null)
+            throw new ReflectionException($"Foreign key {name} not found for {_type.Name}");
+
+        return foreignKeyColumn;
+    }
 }

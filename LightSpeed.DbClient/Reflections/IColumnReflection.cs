@@ -16,7 +16,9 @@ public interface IColumnReflection
     bool IsPartOfOwnerKey();
     bool IsTranslatable();
     bool HasForeignKeyTable();
+    bool HasAdditionalForeignKeyTable();
     public string ForeignKeyName();
+    public string AdditionalForeignKeyName();
     ITableReflection ForeignKeyTable();
     IForeignKeyTable ForeignKeyTableLink();
     IColumnReflection ForeignKeyColumn();
