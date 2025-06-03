@@ -86,7 +86,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
         foreach (IConnectedTable connectedTable in Reflection.TranslationTables())
         {
-            ProcessConnectedTable(connectedTable, elements, reader);
+            await ProcessConnectedTable(connectedTable, elements, reader);
         }
         await reader.CloseAsync();
         foreach (var element in elements.Values)
