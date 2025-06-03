@@ -325,7 +325,14 @@ public class PostgresqlMapper(ITableReflection reflection) : IMapper
         }
         else if (type.IsEnum)
         {
-            return (int)value;
+            if (value is string)
+            {
+                return Enum.Parse(type, (value as string)!, true);
+            }
+            else
+            {
+                return (int)value;
+            }
         }
         else if (type == typeof(ITranslatable) || type.GetInterface(typeof(ITranslatable).FullName!) != null)
         {

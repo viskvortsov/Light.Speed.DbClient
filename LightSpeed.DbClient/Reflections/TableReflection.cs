@@ -266,6 +266,11 @@ public class TableReflection : ITableReflection
         return _columns.Single(x => x.Name() == name.ToLower());
     }
 
+    public IColumnReflection? GetColumnReflectionByQueryName(string name)
+    {
+        return _columns.Single(x => x.QueryName() == name.ToLower());
+    }
+    
     public IColumnReflection? GetAdditionalColumnReflection(string name)
     {
         return _additionalFields.Single(x => x.Name() == name.ToLower());
