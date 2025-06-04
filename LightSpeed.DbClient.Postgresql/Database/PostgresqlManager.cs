@@ -263,6 +263,9 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     public override async Task<T> GetByKeyAsync(IKey key)
     {
+        
+        if (!typeof(DatabaseObject).IsAssignableFrom(typeof(T)))
+            throw new NotSupportedException("Only DatabaseObject types are supported");
 
         T? receivedElement = default(T);
         
@@ -345,6 +348,8 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
         foreach (var element in databaseObjects)
         {
+            if (!element.ModelType().Equals(ModelType.Object))
+                throw new NotSupportedException($"Only {ModelType.Object} models are supported");
             element.BeforeSave();
         }
         
@@ -430,7 +435,23 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
         
     }
-    
+
+    public override async Task<T> SaveRecordsAsync(IFilters<T> filters, T element)
+    {
+        if (typeof(T) != typeof(RecordObject))
+            throw new NotSupportedException("Only RecordObject types are supported");
+        await DeleteAsync(filters);
+        return await SaveAsync(element);
+    }
+
+    public override async Task<IDataSelection<T>> SaveRecordsAsync(IFilters<T> filters, IEnumerable<T> elements, int chunkSize = 1000)
+    {
+        if (!typeof(RecordObject).IsAssignableFrom(typeof(T)))
+            throw new NotSupportedException("Only RecordObject types are supported");
+        await DeleteAsync(filters);
+        return await SaveManyAsync(elements, chunkSize);
+    }
+
     public override async Task<int> DeleteAsync()
     {
         return await DeleteAsync(new Filters<T>()); 
