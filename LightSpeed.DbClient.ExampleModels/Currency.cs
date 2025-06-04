@@ -22,7 +22,7 @@ public class Currency : DatabaseObject
     public String Deleted { get; set; }
     
     [Column]
-    public DateTime DeletedAt { get; set; }
+    public DateTime? DeletedAt { get; set; }
     
     [Column]
     public bool Upload { get; set; }

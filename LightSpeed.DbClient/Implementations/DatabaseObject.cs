@@ -92,9 +92,8 @@ public abstract class DatabaseObject : IDatabaseObject
         return _modelType == Models.ModelType.Row;
     }
 
-    public void BeforeSave()
+    public virtual void BeforeSave()
     {
-        
         // TODO current implementation only supports objects with Guid or Int as primary key
         IEnumerable<IColumnReflection> partsOfPrimaryKey = _reflection.MainTableReflection.PartsOfPrimaryKey();
         if (partsOfPrimaryKey.Count() != 1)
@@ -118,16 +117,16 @@ public abstract class DatabaseObject : IDatabaseObject
         }
     }
 
-    public void BeforeDelete()
+    public virtual void BeforeDelete()
     {
     }
 
-    public void BeforeGetReference()
+    public virtual void BeforeGetReference()
     {
         FillTableTranslations(this, _reflection.MainTableReflection);
     }
 
-    public void BeforeGetObject()
+    public virtual void BeforeGetObject()
     {
         FillTableTranslations(this, _reflection.MainTableReflection);
         foreach (var table in _reflection.ConnectedTables())

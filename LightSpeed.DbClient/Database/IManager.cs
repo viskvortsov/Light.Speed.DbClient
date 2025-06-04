@@ -34,6 +34,8 @@ public interface IManager<T> : IDisposable, IAsyncDisposable where T : IDatabase
     Task<long> CountAsync();
     Task<T> SaveAsync(T element);
     Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000);
+    Task<T> SaveRecordsAsync(IFilters<T> filters, T element);
+    Task<IDataSelection<T>> SaveRecordsAsync(IFilters<T> filters, IEnumerable<T> elements, int chunkSize = 1000);
     Task<int> DeleteAsync();
     Task<int> DeleteAsync(IFilters<T> filters);
     Task<int> DeleteByKeyAsync(IKey key);
