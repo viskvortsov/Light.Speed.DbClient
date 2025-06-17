@@ -577,4 +577,25 @@ public class Tests
 
     }
     
+    [Test]
+    public async Task TestFilterIn()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
+        IFilters<SelfReference> filters = manager.CreateFilters();
+        var filterValues = new List<string>();
+        filterValues.Add("%versace%");
+        filterValues.Add("%gucci%");
+        
+        filters.Add(new Filter<SelfReference>("name", ComparisonOperator.In, filterValues));
+        await manager.GetListAsync(filters);
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
 }
