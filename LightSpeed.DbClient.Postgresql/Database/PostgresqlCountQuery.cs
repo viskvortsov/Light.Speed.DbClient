@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using LightSpeed.DbClient.Database;
 using LightSpeed.DbClient.Exceptions;
@@ -253,16 +254,40 @@ public class PostgresqlCountQuery<T>: IQuery where T : IDatabaseElement
                     var type = filter.Type();
                     var table = filter.Column().Table();
                     value = _mapper.MapToDatabaseValue(value, type);
+                    object newValue = value;
+                    
+                    // All strings should be lower case
+                    // Even if it is Array of strings 
+                    // TODO extract to a helper
                     if (type == typeof(String))
                     {
-                        string parameterName = _parameters.Add(type, ((String)value!).ToLower());
+                        if (value.GetType() == typeof(ICollection) ||
+                            value.GetType().GetInterface(typeof(ICollection).FullName!) != null)
+                        {
+                            ICollection list = (value as ICollection)!;
+                            ArrayList newList = new ArrayList();
+                            foreach (string innerValue in list)
+                            {
+                                string lower = innerValue.ToLower();
+                                newList.Add(lower);
+                            }
+                            newValue = newList;
+                        }
+                        else if (value is string)
+                        {
+                            newValue = ((String)value!).ToLower();
+                        }
+                        string parameterName = _parameters.Add(type, newValue);
                         sb.Append($"lower({table.QueryName()}.{filter.Column().QueryName()}) {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
+
                     }
                     else
                     {
-                        string parameterName = _parameters.Add(type, value);
-                        sb.Append($"{table.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");  
+                        string parameterName = _parameters.Add(type, newValue);
+                        sb.Append($"{table.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                     }
+                    
+                    
                     if (i < filters.Count - 1)
                     {
                         sb.Append(" ");
