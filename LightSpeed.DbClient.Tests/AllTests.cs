@@ -123,7 +123,7 @@ public class Tests
         foreach (int i in Enumerable.Range(1, 10000))
         {
             Currency currency = manager.CreateObject();
-            currency.Id = Guid.NewGuid();
+            //currency.Id = Guid.NewGuid();
             currency.Name = "Euro";
             currency.Deleted = "dj";
             currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();

@@ -98,10 +98,21 @@ public abstract class DatabaseObject : IDatabaseObject
         IEnumerable<IColumnReflection> partsOfPrimaryKey = _reflection.MainTableReflection.PartsOfPrimaryKey();
         if (partsOfPrimaryKey.Count() != 1)
             throw new ReflectionException("Only objects with a single primary key column are supported");
-        
-        object? key = _reflection.MainTableReflection.PartsOfPrimaryKey().First().Property().GetValue(this);
+
+        PropertyInfo propertyKey = _reflection.MainTableReflection.PartsOfPrimaryKey().First().Property();
+        object? key = propertyKey.GetValue(this);
         if (!(key is Guid) && !(key.GetType().IsEnum))
             throw new ReflectionException("Only objects with a single primary key column of type Guid or Int are supported");
+        
+        if (key is Guid)
+        {
+            Guid guidkey = (Guid) key;
+            if (guidkey == Guid.Empty)
+            {
+                guidkey = Guid.NewGuid();
+                propertyKey.SetValue(this, guidkey);
+            }
+        }
         
         Translations.Clear();
         SaveTranslations(this, key, _reflection.MainTableReflection);
