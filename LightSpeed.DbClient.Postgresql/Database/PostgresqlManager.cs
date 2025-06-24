@@ -321,7 +321,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
         
         if (receivedElement == null)
-            throw new DatabaseNotFoundException($"Error saving element");
+            throw new DatabaseNotFoundException($"Error getting element by key");
 
         receivedElement.BeforeGetObject();
         return receivedElement;
@@ -438,7 +438,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     public override async Task<T> SaveRecordsAsync(IFilters<T> filters, T element)
     {
-        if (typeof(T) != typeof(RecordObject))
+        if (!typeof(RecordObject).IsAssignableFrom(typeof(T)))
             throw new NotSupportedException("Only RecordObject types are supported");
         await DeleteAsync(filters);
         return await SaveAsync(element);
