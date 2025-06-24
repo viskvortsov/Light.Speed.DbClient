@@ -86,7 +86,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
         foreach (IConnectedTable connectedTable in Reflection.TranslationTables())
         {
-            ProcessConnectedTable(connectedTable, elements, reader);
+            await ProcessConnectedTable(connectedTable, elements, reader);
         }
         await reader.CloseAsync();
         foreach (var element in elements.Values)
@@ -263,6 +263,9 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     public override async Task<T> GetByKeyAsync(IKey key)
     {
+        
+        if (!typeof(DatabaseObject).IsAssignableFrom(typeof(T)))
+            throw new NotSupportedException("Only DatabaseObject types are supported");
 
         T? receivedElement = default(T);
         
@@ -288,7 +291,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
             if (receivedElement == null)
             {
-                throw new DatabaseNotFoundException($"Error saving element");
+                throw new DatabaseNotFoundException($"Error getting element by key");
             }
 
             foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
@@ -318,7 +321,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
         
         if (receivedElement == null)
-            throw new DatabaseNotFoundException($"Error saving element");
+            throw new DatabaseNotFoundException($"Error getting element by key");
 
         receivedElement.BeforeGetObject();
         return receivedElement;
@@ -345,6 +348,8 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
         foreach (var element in databaseObjects)
         {
+            if (!element.ModelType().Equals(ModelType.Object))
+                throw new NotSupportedException($"Only {ModelType.Object} models are supported");
             element.BeforeSave();
         }
         
@@ -430,7 +435,23 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
         
     }
-    
+
+    public override async Task<T> SaveRecordsAsync(IFilters<T> filters, T element)
+    {
+        if (!typeof(RecordObject).IsAssignableFrom(typeof(T)))
+            throw new NotSupportedException("Only RecordObject types are supported");
+        await DeleteAsync(filters);
+        return await SaveAsync(element);
+    }
+
+    public override async Task<IDataSelection<T>> SaveRecordsAsync(IFilters<T> filters, IEnumerable<T> elements, int chunkSize = 1000)
+    {
+        if (!typeof(RecordObject).IsAssignableFrom(typeof(T)))
+            throw new NotSupportedException("Only RecordObject types are supported");
+        await DeleteAsync(filters);
+        return await SaveManyAsync(elements, chunkSize);
+    }
+
     public override async Task<int> DeleteAsync()
     {
         return await DeleteAsync(new Filters<T>()); 
@@ -476,8 +497,23 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             values.Add(reader.GetValue(i));
             i += 1;
         }
+        foreach (IColumnReflection column in reflection.AdditionalFields2())
+        {
+            values.Add(reader.GetValue(i));
+            i += 1;
+        }
         var translatableFields = reflection.TranslatableColumns().ToList();
         foreach (var translatableField in translatableFields)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                continue;
+            }
+            values.Add(reader.GetValue(i));
+            i++;
+        }
+        var translatableFields2 = reflection.AdditionalTranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields2)
         {
             if (!translatableField.HasForeignKeyTable())
             {

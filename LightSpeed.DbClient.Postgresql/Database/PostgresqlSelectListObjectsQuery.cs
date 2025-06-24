@@ -1,3 +1,4 @@
+using System.Collections;
 using System.Text;
 using LightSpeed.DbClient.Database;
 using LightSpeed.DbClient.Exceptions;
@@ -399,16 +400,39 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                     var type = filter.Type();
                     var table = filter.Column().Table();
                     value = _mapper.MapToDatabaseValue(value, type);
+                    object newValue = value;
+                    
+                    // All strings should be lower case
+                    // Even if it is Array of strings 
+                    // TODO extract to a helper
                     if (type == typeof(String))
                     {
-                        string parameterName = _parameters.Add(type, ((String)value!).ToLower());
+                        if (value.GetType() == typeof(ICollection) ||
+                            value.GetType().GetInterface(typeof(ICollection).FullName!) != null)
+                        {
+                            ICollection list = (value as ICollection)!;
+                            ArrayList newList = new ArrayList();
+                            foreach (string innerValue in list)
+                            {
+                                string lower = innerValue.ToLower();
+                                newList.Add(lower);
+                            }
+                            newValue = newList;
+                        }
+                        else if (value is string)
+                        {
+                            newValue = ((String)value!).ToLower();
+                        }
+                        string parameterName = _parameters.Add(type, newValue);
                         sb.Append($"lower({table.QueryName()}.{filter.Column().QueryName()}) {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
+
                     }
                     else
                     {
-                        string parameterName = _parameters.Add(type, value);
-                        sb.Append($"{table.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");  
+                        string parameterName = _parameters.Add(type, newValue);
+                        sb.Append($"{table.QueryName()}.{filter.Column().QueryName()} {ComparisonOperatorConverter.Convert(filter.Operator())} {parameterName}");
                     }
+                    
                     if (i < filters.Count - 1)
                     {
                         sb.Append(" ");
@@ -533,8 +557,10 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
     {
         
         var additionalTables = _reflection.MainTableReflection.ColumnsWithForeignKey().ToList();
+        var additionalTables2 = _reflection.MainTableReflection.AdditionalFieldsWithForeignKey().ToList();
         var additionalColumns = _reflection.MainTableReflection.AdditionalFields().ToList();
-        
+        var additionalColumns2 = _reflection.MainTableReflection.AdditionalFields2().ToList();
+
         List<IColumnReflection> allTranslationJoins = new List<IColumnReflection>();
         var translatableFields = _reflection.MainTableReflection.TranslatableColumns().ToList();
         foreach (var translatableField in translatableFields)
@@ -542,6 +568,16 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             if (translatableField.HasForeignKeyTable())
             {
                 allTranslationJoins.Add(translatableField);
+            }
+        }
+        
+        List<IColumnReflection> allTranslationJoins2 = new List<IColumnReflection>();
+        var translatableFields2 = _reflection.MainTableReflection.AdditionalTranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields2)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                allTranslationJoins2.Add(translatableField);
             }
         }
         
@@ -572,6 +608,21 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append(", ");
             sb.Append(" ");
             index0++;
+        }
+        
+        // additional fields 2
+        if (additionalColumns2.Count > 0)
+            sb.Append(",");
+        
+        int index1 = 0;
+        foreach (var column in additionalColumns2)
+        {
+            ITableReflection foreignKeyTable = column.ForeignKeyTable();
+            sb.Append($"{GetAdditionalTableSynonym(column)}.{column.QueryName()} as {foreignKeyTable.QueryName()}_{column.QueryName()}");
+            if (index1 < additionalColumns2.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+            index1++;
         }
         
         foreach (var translatableField in translatableFields)
@@ -624,7 +675,57 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             index++;
         }
         
+        foreach (var translatableField in translatableFields2)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                sb.Append(", ");
+                break;
+            }
+        }
+        
+        int index03 = 0;
+        foreach (var translatableField in translatableFields2)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                index03++;
+                continue;
+            }
+            var field = translatableField.QueryName();
+            var table = translatableField.ForeignKeyTable().QueryName();
+            var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+            if (translationsTable == null)
+            {
+                throw new ReflectionException($"Translations table not found for column {field} in table {table}");
+            }
+            sb.Append("jsonb_agg");
+            sb.Append("(");
+            sb.Append("jsonb_build_object");
+            sb.Append("(");
+            sb.Append("'language_id'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.language_id");
+            sb.Append(",");
+            sb.Append("'content_id'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.content_id");
+            sb.Append(",");
+            sb.Append("'content'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.content");
+            sb.Append(")");
+            sb.Append(")");
+            sb.Append(" ");
+            sb.Append("as");
+            sb.Append(" ");
+            sb.Append($"{translatableField.TranslationsQueryName()}");
+            if (index03 < translatableFields2.Count - 1)
+                sb.Append(",");
+            index03++;
+        }
         sb.Append(" ");
+        
         sb.Append($"FROM {temporaryTableName}");
         
         // Additional tables
@@ -654,6 +755,28 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         }
         
         sb.Append($" ");
+        
+        // Additional tables 2
+        foreach (var column in additionalTables2)
+        {
+            // LEFT JOIN attribute_types as attribute_types_3 ON product_families_attributes.attribute_type = attributes_1.attribute
+            // LEFT JOIN attribute_types as attribute_types_3 ON attributes_1.attribute_type = attribute_types.id
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{column.AdditionalForeignKeyTable().QueryName()} as {GetAdditionalJoinTableSynonym(column)}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{GetTableSynonym(column.ForeignKeyColumn())}.{column.QueryName()}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{GetAdditionalJoinTableSynonym(column)}.{column.AdditionalForeignKeyColumnName()}");
+        }
+        
+        sb.Append($" ");
+        
         foreach (var column in allTranslationJoins)
         {
             var translationsTable = column.ForeignKeyTable().TranslationsTableQueryName();
@@ -670,6 +793,29 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append(" ");
             sb.Append($"{GetTranslationsTableSynonym(column)}.content_id");
         }
+        
+        sb.Append($" ");
+        
+        foreach (var column in allTranslationJoins2)
+        {
+            var field = column.QueryName();
+            var table = column.AdditionalForeignKeyColumn().AdditionalForeignKeyTable().QueryName();
+            var translationsTable = column.AdditionalForeignKeyColumn().AdditionalForeignKeyTable().TranslationsTableQueryName();
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{translationsTable} as {GetTranslationsTableSynonym(column)}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{GetAdditionalJoinTableSynonym(column.AdditionalForeignKeyColumn())}.{field}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{GetTranslationsTableSynonym(column)}.content_id");
+        }
+        sb.Append($" ");
+
         
         if (allTranslationJoins.Count > 0)
         {
@@ -701,6 +847,24 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                     sb.Append(", ");
                 sb.Append(" ");
             }
+            
+            if (additionalColumns2.Count > 0)
+            {
+                sb.Append(",");
+                sb.Append(" ");
+            }
+            
+            int i0 = 0;
+            foreach (var column in additionalColumns2)
+            {
+                ITableReflection foreignKeyTable = column.ForeignKeyTable();
+                sb.Append($"{GetAdditionalTableSynonym(column)}.{column.QueryName()}");
+                if (i0 < additionalColumns2.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+                i0++;
+            }
+            
         }
         
         if (_sorting.HasMainTableSortingElements())
@@ -732,8 +896,10 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
     {
         
         var additionalTables = connectedTable.TableReflection().ColumnsWithForeignKey().ToList();
+        var additionalTables2 = connectedTable.TableReflection().AdditionalFieldsWithForeignKey().ToList();
         var additionalColumns = connectedTable.TableReflection().AdditionalFields().ToList();
-
+        var additionalColumns2 = connectedTable.TableReflection().AdditionalFields2().ToList();
+        
         List<IColumnReflection> allTranslationJoins = new List<IColumnReflection>();
         var translatableFields = connectedTable.TableReflection().TranslatableColumns().ToList();
         foreach (var translatableField in translatableFields)
@@ -741,6 +907,16 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             if (translatableField.HasForeignKeyTable())
             {
                 allTranslationJoins.Add(translatableField);
+            }
+        }
+        
+        List<IColumnReflection> allTranslationJoins2 = new List<IColumnReflection>();
+        var translatableFields2 = connectedTable.TableReflection().AdditionalTranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields2)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                allTranslationJoins2.Add(translatableField);
             }
         }
         
@@ -771,6 +947,21 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append(", ");
             sb.Append(" ");
             index0++;
+        }
+        
+        // additional fields 2
+        if (additionalColumns2.Count > 0)
+            sb.Append(",");
+        
+        int index1 = 0;
+        foreach (var column in additionalColumns2)
+        {
+            ITableReflection foreignKeyTable = column.ForeignKeyTable();
+            sb.Append($"{GetAdditionalTableSynonym(column)}.{column.QueryName()} as {foreignKeyTable.QueryName()}_{column.QueryName()}");
+            if (index1 < additionalColumns2.Count - 1)
+                sb.Append(", ");
+            sb.Append(" ");
+            index1++;
         }
         
         foreach (var translatableField in translatableFields)
@@ -826,6 +1017,58 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         }
         sb.Append(" ");
         
+        foreach (var translatableField in translatableFields2)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                sb.Append(", ");
+                break;
+            }
+        }
+        
+        int index03 = 0;
+        foreach (var translatableField in translatableFields2)
+        {
+            if (!translatableField.HasForeignKeyTable())
+            {
+                index03++;
+                continue;
+            }
+            atLeastOneTranslationJoin = true;
+            var field = translatableField.QueryName();
+            var table = translatableField.ForeignKeyTable().QueryName();
+            var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+            if (translationsTable == null)
+            {
+                throw new ReflectionException($"Translations table not found for column {field} in table {table}");
+            }
+            sb.Append("jsonb_agg");
+            sb.Append("(");
+            sb.Append("jsonb_build_object");
+            sb.Append("(");
+            sb.Append("'language_id'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.language_id");
+            sb.Append(",");
+            sb.Append("'content_id'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.content_id");
+            sb.Append(",");
+            sb.Append("'content'");
+            sb.Append(",");
+            sb.Append($"{GetTranslationsTableSynonym(translatableField)}.content");
+            sb.Append(")");
+            sb.Append(")");
+            sb.Append(" ");
+            sb.Append("as");
+            sb.Append(" ");
+            sb.Append($"{translatableField.TranslationsQueryName()}");
+            if (index03 < translatableFields2.Count - 1)
+                sb.Append(",");
+            index03++;
+        }
+        sb.Append(" ");
+        
         sb.Append($"FROM {connectedTable.QueryName()} as {connectedTable.QueryName()}");
         sb.Append($" ");
         // Additional tables
@@ -845,6 +1088,27 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append($"{GetTableSynonym(column)}.{column.ForeignKeyColumn().QueryName()}");
         }
         sb.Append($" ");
+        // Additional tables 2
+        foreach (var column in additionalTables2)
+        {
+            // LEFT JOIN attribute_types as attribute_types_3 ON product_families_attributes.attribute_type = attributes_1.attribute
+            // LEFT JOIN attribute_types as attribute_types_3 ON attributes_1.attribute_type = attribute_types.id
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{column.AdditionalForeignKeyTable().QueryName()} as {GetAdditionalJoinTableSynonym(column)}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{GetTableSynonym(column.ForeignKeyColumn())}.{column.QueryName()}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{GetAdditionalJoinTableSynonym(column)}.{column.AdditionalForeignKeyColumnName()}");
+        }
+        
+        sb.Append($" ");
+        
         foreach (var column in allTranslationJoins)
         {
             var field = column.QueryName();
@@ -864,6 +1128,27 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             sb.Append($"{GetTranslationsTableSynonym(column)}.content_id");
         }
         sb.Append($" ");
+        
+        foreach (var column in allTranslationJoins2)
+        {
+            var field = column.QueryName();
+            var table = column.AdditionalForeignKeyColumn().AdditionalForeignKeyTable().QueryName();
+            var translationsTable = column.AdditionalForeignKeyColumn().AdditionalForeignKeyTable().TranslationsTableQueryName();
+            sb.Append(" ");
+            sb.Append("LEFT JOIN");
+            sb.Append(" ");
+            sb.Append($"{translationsTable} as {GetTranslationsTableSynonym(column)}");
+            sb.Append(" ");
+            sb.Append("ON");
+            sb.Append(" ");
+            sb.Append($"{GetAdditionalJoinTableSynonym(column.AdditionalForeignKeyColumn())}.{field}");
+            sb.Append(" ");
+            sb.Append("=");
+            sb.Append(" ");
+            sb.Append($"{GetTranslationsTableSynonym(column)}.content_id");
+        }
+        sb.Append($" ");
+        
         sb.Append($"WHERE");
         sb.Append($" ");
             
@@ -931,6 +1216,24 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 sb.Append(" ");
                 index200++;
             }
+            
+            if (additionalColumns2.Count > 0)
+            {
+                sb.Append(",");
+                sb.Append(" ");
+            }
+            
+            index200 = 0;
+            foreach (var column in additionalColumns2)
+            {
+                ITableReflection foreignKeyTable = column.ForeignKeyTable();
+                sb.Append($"{GetAdditionalTableSynonym(column)}.{column.QueryName()}");
+                if (index200 < additionalColumns2.Count - 1)
+                    sb.Append(", ");
+                sb.Append(" ");
+                index200++;
+            }
+            
         }
         sb.Append(";");
         
@@ -955,6 +1258,18 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
                 allTranslationJoins.Add([translationsTable, table, field]);
             }
         }
+        
+        var translatableFields2 = tableReflection.AdditionalTranslatableColumns().ToList();
+        foreach (var translatableField in translatableFields2)
+        {
+            if (translatableField.HasForeignKeyTable())
+            {
+                var field = translatableField.QueryName();
+                var table = translatableField.ForeignKeyTable().QueryName();
+                var translationsTable = translatableField.ForeignKeyTable().TranslationsTableQueryName();
+                allTranslationJoins.Add([translationsTable, table, field]);
+            }
+        }
 
         int a = 1;
         foreach (var column in additionalColumns)
@@ -965,7 +1280,31 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             _tableReplacements.Add(searchField, $"{column.ForeignKeyTable().QueryName()}_{a}");
             a++;
         }
+        
+        var additionalColumns2 = tableReflection.AdditionalFieldsWithForeignKey().ToList();
+        foreach (var column in additionalColumns2)
+        {
+            string field = column.QueryName();
+            string table = column.ForeignKeyTable().QueryName();
+            string searchField = $"{table}.{field}";
+            _tableReplacements.Add(searchField, $"{column.AdditionalForeignKeyTable().QueryName()}_{a}");
+            a++;
+        }
+        
         foreach (var column in translatableFields)
+        {
+            if (column.HasForeignKeyTable())
+            {
+                string field = column.QueryName();
+                string table = column.ForeignKeyTable().QueryName();
+                string searchField = $"{table}.{field}";
+                _tableReplacements.Add(searchField, $"{column.ForeignKeyTable().QueryName()}_{a}");
+                _translationsTableReplacements.Add(searchField, $"{column.TranslationsQueryName()}_{a}");
+                a++;
+            }
+        }
+        
+        foreach (var column in translatableFields2)
         {
             if (column.HasForeignKeyTable())
             {
@@ -989,6 +1328,32 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         }
         
         string table = column.Table().QueryName();
+        string queryName = column.ForeignKeyTable().QueryName();
+        string searchField = $"{table}.{field}";
+        if (_tableReplacements.ContainsKey(searchField))
+        {
+            queryName = _tableReplacements[searchField];
+        }
+        return queryName;
+    }
+    
+    private string GetAdditionalTableSynonym(IColumnReflection column)
+    {
+        string field = column.AdditionalForeignKeyColumn().QueryName();
+        string table = column.ForeignKeyTable().QueryName();
+        string queryName = column.ForeignKeyTable().QueryName();
+        string searchField = $"{table}.{field}";
+        if (_tableReplacements.ContainsKey(searchField))
+        {
+            queryName = _tableReplacements[searchField];
+        }
+        return queryName;
+    }
+    
+    private string GetAdditionalJoinTableSynonym(IColumnReflection column)
+    {
+        string field = column.QueryName();
+        string table = column.ForeignKeyTable().QueryName();
         string queryName = column.ForeignKeyTable().QueryName();
         string searchField = $"{table}.{field}";
         if (_tableReplacements.ContainsKey(searchField))

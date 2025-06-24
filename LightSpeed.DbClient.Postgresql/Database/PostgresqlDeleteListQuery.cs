@@ -63,7 +63,7 @@ public class PostgresqlDeleteListQuery<T>(IFilters<T> filters, DatabaseObjectRef
                 string parameterName = _parameters.Add(type, value);
                 sb.Append($"{reflection.MainTableReflection.QueryName()}.{filter.Column().QueryName()} = {parameterName}");
                 if (index1 < filters1.Count - 1)
-                    sb.Append(", ");
+                    sb.Append(" AND ");
                 sb.Append(" ");
                 index1++;
             }

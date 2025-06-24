@@ -92,17 +92,27 @@ public abstract class DatabaseObject : IDatabaseObject
         return _modelType == Models.ModelType.Row;
     }
 
-    public void BeforeSave()
+    public virtual void BeforeSave()
     {
-        
         // TODO current implementation only supports objects with Guid or Int as primary key
         IEnumerable<IColumnReflection> partsOfPrimaryKey = _reflection.MainTableReflection.PartsOfPrimaryKey();
         if (partsOfPrimaryKey.Count() != 1)
             throw new ReflectionException("Only objects with a single primary key column are supported");
-        
-        object? key = _reflection.MainTableReflection.PartsOfPrimaryKey().First().Property().GetValue(this);
+
+        PropertyInfo propertyKey = _reflection.MainTableReflection.PartsOfPrimaryKey().First().Property();
+        object? key = propertyKey.GetValue(this);
         if (!(key is Guid) && !(key.GetType().IsEnum))
             throw new ReflectionException("Only objects with a single primary key column of type Guid or Int are supported");
+        
+        if (key is Guid)
+        {
+            Guid guidkey = (Guid) key;
+            if (guidkey == Guid.Empty)
+            {
+                guidkey = Guid.NewGuid();
+                propertyKey.SetValue(this, guidkey);
+            }
+        }
         
         Translations.Clear();
         SaveTranslations(this, key, _reflection.MainTableReflection);
@@ -118,16 +128,16 @@ public abstract class DatabaseObject : IDatabaseObject
         }
     }
 
-    public void BeforeDelete()
+    public virtual void BeforeDelete()
     {
     }
 
-    public void BeforeGetReference()
+    public virtual void BeforeGetReference()
     {
         FillTableTranslations(this, _reflection.MainTableReflection);
     }
 
-    public void BeforeGetObject()
+    public virtual void BeforeGetObject()
     {
         FillTableTranslations(this, _reflection.MainTableReflection);
         foreach (var table in _reflection.ConnectedTables())

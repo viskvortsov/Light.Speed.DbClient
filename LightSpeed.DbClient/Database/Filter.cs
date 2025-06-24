@@ -38,7 +38,7 @@ public class Filter<T> : IFilter<T> where T : IDatabaseElement
         }
         else
         {
-            _column = reflection.GetColumnReflection(name);
+            _column = reflection.GetColumnReflectionByQueryName(name);
             _type = _column.Type();
             _operator = comparisonOperator;
             _value = value;

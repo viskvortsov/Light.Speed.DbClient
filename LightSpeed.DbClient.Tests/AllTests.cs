@@ -123,7 +123,7 @@ public class Tests
         foreach (int i in Enumerable.Range(1, 10000))
         {
             Currency currency = manager.CreateObject();
-            currency.Id = Guid.NewGuid();
+            //currency.Id = Guid.NewGuid();
             currency.Name = "Euro";
             currency.Deleted = "dj";
             currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
@@ -571,6 +571,64 @@ public class Tests
 
         IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
         await manager.GetListAsync();
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestFilterIn()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
+        IFilters<SelfReference> filters = manager.CreateFilters();
+        var filterValues = new List<string>();
+        filterValues.Add("%versace%");
+        filterValues.Add("%gucci%");
+        
+        filters.Add(new Filter<SelfReference>("name", ComparisonOperator.In, filterValues));
+        await manager.GetListAsync(filters);
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestRecords()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<Price> manager = new PostgresqlManager<Price>(connection, transaction);
+        
+        Price price = manager.CreateObject();
+        price.Product = Guid.NewGuid();
+        price.Variant = Guid.NewGuid();
+        price.ListPrice = 100;
+        price.SalePrice = 80;
+        
+        IFilters<Price> filters = manager.CreateFilters();
+        filters.Add(new Filter<Price>("product", ComparisonOperator.Equals, price.Product));
+        filters.Add(new Filter<Price>("variant", ComparisonOperator.Equals, price.Variant));
+        await manager.DeleteAsync();
+        await manager.SaveRecordsAsync(filters, price);
+        
+        var prices1 = await manager.GetListAsync();
+        Assert.That(prices1.Count, Is.EqualTo(1));
+        
+        var prices2 = await manager.GetListObjectsAsync();
+        Assert.That(prices2.Count, Is.EqualTo(1));
+        
+        long l = await manager.CountAsync();
+        Assert.That(l, Is.EqualTo(1));
+
+        await transaction.CommitAsync();
         
         await transaction.DisposeAsync();
         await db.DisposeAsync();

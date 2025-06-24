@@ -63,7 +63,8 @@ public abstract class Manager<T>(IConnection connection, ITransaction? transacti
     public abstract Task<T> GetByKeyAsync(IKey key);
     public abstract Task<T> SaveAsync(T element);
     public abstract Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000);
-
+    public abstract Task<T> SaveRecordsAsync(IFilters<T> filters, T element);
+    public abstract Task<IDataSelection<T>> SaveRecordsAsync(IFilters<T> filters, IEnumerable<T> elements, int chunkSize = 1000);
     public abstract Task<int> DeleteAsync(IFilters<T> filters);
     public abstract Task<int> DeleteByKeyAsync(IKey key);
     public abstract Task<int> DeleteAsync();

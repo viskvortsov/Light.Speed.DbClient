@@ -21,8 +21,8 @@ public class Currency : DatabaseObject
     [Column]
     public String Deleted { get; set; }
     
-    [Column]
-    public DateTime DeletedAt { get; set; }
+    [Column(name: "deleted_at")]
+    public DateTime? DeletedAt { get; set; }
     
     [Column]
     public bool Upload { get; set; }
@@ -31,16 +31,16 @@ public class Currency : DatabaseObject
     public Decimal rate1 { get; set; }
     
     [Column]
-    public float rate2 { get; set; }
+    public double rate2 { get; set; }
     
     [Column]
     public int rate3 { get; set; }
     
     [Column]
-    public double rate4 { get; set; }
+    public decimal rate4 { get; set; }
     
     [Column]
-    public float rate5 { get; set; }
+    public double rate5 { get; set; }
     
     [Table]
     public DatabaseObjectTable<ExchangeRateRow> ExchangeRates { get; set; }
