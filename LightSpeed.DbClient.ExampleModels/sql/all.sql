@@ -106,3 +106,12 @@ create table self_references
     constraint self_reference_id
         primary key (id)
 );
+
+create table prices
+(
+    product uuid not null,
+    variant uuid not null,
+    listprice numeric,
+    saleprice numeric,
+    constraint prices_pk primary key (product, variant)
+);

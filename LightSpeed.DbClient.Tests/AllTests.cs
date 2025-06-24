@@ -598,4 +598,41 @@ public class Tests
 
     }
     
+    [Test]
+    public async Task TestRecords()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<Price> manager = new PostgresqlManager<Price>(connection, transaction);
+        
+        Price price = manager.CreateObject();
+        price.Product = Guid.NewGuid();
+        price.Variant = Guid.NewGuid();
+        price.ListPrice = 100;
+        price.SalePrice = 80;
+        
+        IFilters<Price> filters = manager.CreateFilters();
+        filters.Add(new Filter<Price>("product", ComparisonOperator.Equals, price.Product));
+        filters.Add(new Filter<Price>("variant", ComparisonOperator.Equals, price.Variant));
+        await manager.DeleteAsync();
+        await manager.SaveRecordsAsync(filters, price);
+        
+        var prices1 = await manager.GetListAsync();
+        Assert.That(prices1.Count, Is.EqualTo(1));
+        
+        var prices2 = await manager.GetListObjectsAsync();
+        Assert.That(prices2.Count, Is.EqualTo(1));
+        
+        long l = await manager.CountAsync();
+        Assert.That(l, Is.EqualTo(1));
+
+        await transaction.CommitAsync();
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
 }
