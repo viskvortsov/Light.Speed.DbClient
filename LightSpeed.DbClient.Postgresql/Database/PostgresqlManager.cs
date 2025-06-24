@@ -321,7 +321,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
         }
         
         if (receivedElement == null)
-            throw new DatabaseNotFoundException($"Error saving element");
+            throw new DatabaseNotFoundException($"Error getting element by key");
 
         receivedElement.BeforeGetObject();
         return receivedElement;
