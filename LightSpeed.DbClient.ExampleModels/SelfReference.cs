@@ -11,6 +11,9 @@ public class SelfReference : DatabaseObject
     [Column]
     public Guid Id { get; set; }
     
+    [Column(readOnly: true)]
+    public int Code { get; set; }
+    
     [Column]
     public String Name { get; set; }
 
