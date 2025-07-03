@@ -590,6 +590,11 @@ public class Tests
         ITransaction transaction = await connection.BeginTransactionAsync();
 
         IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
+        
+        SelfReference ob = manager.CreateObject();
+        ob.Name = "name";
+        var ob2 = await manager.SaveAsync(ob);
+        
         IFilters<SelfReference> filters = manager.CreateFilters();
         var filterValues = new List<string>();
         filterValues.Add("%versace%");
@@ -633,6 +638,43 @@ public class Tests
         long l = await manager.CountAsync();
         Assert.That(l, Is.EqualTo(1));
 
+        await transaction.CommitAsync();
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestEnum()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<EnumExample> manager = new PostgresqlManager<EnumExample>(connection, transaction);
+        await manager.DeleteAsync();
+        await manager.GetListAsync();
+        
+        EnumExample ob = manager.CreateObject();
+        ob.Name = new Translatable();
+        ob.Name.AddTranslation(Guid.NewGuid(), "name");
+        ob.Id = EnumExample.Value.First;
+        var ob2 = await manager.SaveAsync(ob);
+        
+        Assert.That(ob2.Name.AllTranslations().Count, Is.EqualTo(1));
+        
+        EnumExample ob3 = manager.CreateObject();
+        ob3.Name = new Translatable();
+        ob3.Name.AddTranslation(Guid.NewGuid(), "name");
+        ob3.Id = EnumExample.Value.First;
+        var ob4 = await manager.SaveAsync(ob3);
+        
+        Assert.That(ob4.Name.AllTranslations().Count, Is.EqualTo(1));
+
+        var ob5 = await manager.GetByKeyAsync(new IntKey<EnumExample>(1));
+        Assert.That(ob5.Name.AllTranslations().Count, Is.EqualTo(1));
+        
         await transaction.CommitAsync();
         
         await transaction.DisposeAsync();
