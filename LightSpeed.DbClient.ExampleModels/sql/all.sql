@@ -101,6 +101,7 @@ create table products_translations
 create table self_references
 (
     id uuid not null,
+    code int GENERATED ALWAYS AS IDENTITY,
     name varchar(255) not null,
     self_id uuid not null,
     constraint self_reference_id

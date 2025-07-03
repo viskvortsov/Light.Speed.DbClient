@@ -8,7 +8,8 @@ namespace LightSpeed.DbClient.Reflections;
 
 public class ColumnReflection : IColumnReflection
 {
-    
+
+    private readonly bool _isReadOnlyColumn;
     private readonly string _name;
     private readonly string _queryName;
     private readonly ITableReflection _tableReflection;
@@ -72,6 +73,13 @@ public class ColumnReflection : IColumnReflection
                 _foreignKeyColumnName = foreignKey.ColumnName;
             }
             
+            _isReadOnlyColumn = column.ReadOnly;
+
+            if (_isPartOfPrimaryKey && _isReadOnlyColumn)
+            {
+                throw new ReflectionException($"Column {_name} cannot be part of primary key and is read only at the same time");
+            }
+            
         }
         
         AddInfoAttribute? additionalInfo = property.GetCustomAttribute<AddInfoAttribute>();
@@ -128,6 +136,11 @@ public class ColumnReflection : IColumnReflection
             
         }
 
+    }
+
+    public bool IsReadOnly()
+    {
+        return _isReadOnlyColumn;
     }
 
     public string Name()

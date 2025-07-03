@@ -5,6 +5,7 @@ namespace LightSpeed.DbClient.Reflections;
 
 public interface IColumnReflection
 {
+    bool IsReadOnly();
     string Name();
     string QueryName();
     string TranslationsQueryName();

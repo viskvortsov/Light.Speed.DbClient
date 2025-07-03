@@ -80,9 +80,13 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
+            if (column.IsReadOnly())
+            {
+                continue;
+            }
             columnNamesBuilder.Append($"{column.QueryName()}");
-            if (i < columns.Count - 1)
-                columnNamesBuilder.Append(",");
+                if (i < columns.Count - 1)
+                    columnNamesBuilder.Append(",");
         }
         
         for (int l = 0; l < _elements.Count; l++)
@@ -95,6 +99,10 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
             for (int i = 0; i < columns.Count; i++)
             {
                 var column = columns[i];
+                if (column.IsReadOnly())
+                {
+                    continue;
+                }
                 var property = column.Property();
                 var value = property.GetValue(element);
                 var type = property.PropertyType;
@@ -133,6 +141,10 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
+            if (column.IsReadOnly())
+            {
+                continue;
+            }
             sb.Append($"{column.QueryName()} = EXCLUDED.{column.QueryName()}");
             if (i < columns.Count - 1)
                 sb.Append(", ");

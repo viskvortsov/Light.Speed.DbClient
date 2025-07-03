@@ -572,6 +572,11 @@ public class Tests
         IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
         await manager.GetListAsync();
         
+        SelfReference ob = manager.CreateObject();
+        ob.Name = "name";
+        ob.Id = Guid.NewGuid();
+        var ob2 = await manager.SaveAsync(ob);
+        
         await transaction.DisposeAsync();
         await db.DisposeAsync();
 
