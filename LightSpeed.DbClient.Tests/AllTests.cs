@@ -640,4 +640,41 @@ public class Tests
 
     }
     
+    [Test]
+    public async Task TestConnectedTableSave()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction);
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        
+        await attributeManager.SaveAsync(attribute);
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction);
+        Product product = productManager.CreateObject();
+        product.Id = Guid.NewGuid();
+        product.Name = new Translatable();
+        product.ProductType = ProductType.Value.Product;
+
+        ITranslatable value = new Translatable();
+        AttributeRow row = new AttributeRow
+        {
+            Id = Guid.NewGuid(),
+            Attribute = attribute.Id,
+            Value = value,
+        };
+        product.Attributes = new DatabaseObjectTable<AttributeRow>();
+        product.Attributes.Add(row);
+        
+        var result = await productManager.SaveAsync(product);
+        
+        Assert.NotNull(result.Attributes);
+        Assert.That(result.Attributes.Count, Is.EqualTo(1));
+        
+    }
+    
 }
