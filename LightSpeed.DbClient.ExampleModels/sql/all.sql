@@ -116,3 +116,22 @@ create table prices
     saleprice numeric,
     constraint prices_pk primary key (product, variant)
 );
+
+create table enum_examples
+(
+    id int not null primary key,
+    name uuid not null
+);
+
+create table enum_example_translations
+(
+    language_id uuid not null,
+    source_id   int not null
+        constraint owner_enum_examples
+            references enum_examples
+            on delete restrict,
+    content_id  uuid not null,
+    content     text not null,
+    constraint enum_example_translations_id
+        primary key (language_id, source_id, content_id)
+);
