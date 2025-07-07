@@ -174,6 +174,12 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     private async Task ProcessConnectedTable(IConnectedTable connectedTable, Dictionary<IKey, T> elements, NpgsqlDataReader reader)
     {
+
+        foreach (var element in elements)
+        {
+            element.Value.Table(connectedTable.Name());
+        }
+        
         if (await reader.NextResultAsync())
         {
             List<IDatabaseObjectTableElement> list = new ();
@@ -296,6 +302,7 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
             foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
             {
+                receivedElement.Table(connectedTable.Name());
                 if (await reader.NextResultAsync())
                 {
                     List<IDatabaseObjectTableElement> list = new ();

@@ -1,8 +1,9 @@
+using ExampleModels.Currencies;
 using LightSpeed.DbClient.Attributes;
 using LightSpeed.DbClient.Implementations;
 using LightSpeed.DbClient.Models;
 
-namespace ExampleModels.Currencies;
+namespace LightSpeed.DbClient.ExampleModels;
 
 [Model(table: "companies")]
 public class Company : DatabaseObject

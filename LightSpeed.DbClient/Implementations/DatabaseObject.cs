@@ -114,6 +114,21 @@ public abstract class DatabaseObject : IDatabaseObject
             }
         }
         
+        object? objectKey = propertyKey.GetValue(this);
+        foreach (IConnectedTable connectedTable in _reflection.ConnectedTables())
+        {
+            IEnumerable<IColumnReflection> ownerKey = connectedTable.TableReflection().PartsOfOwnerKey();
+            var columnReflections = ownerKey.ToList();
+            if (columnReflections.Count() != 1)
+                throw new ReflectionException("Only connected table with a single owner key column are supported");
+            PropertyInfo ownerKeyProperty = columnReflections.First().Property();
+            IDatabaseObjectTable table = Table(connectedTable.Name());
+            foreach (var row in table)
+            {
+                ownerKeyProperty.SetValue(row, objectKey);
+            }
+        }
+        
         Translations.Clear();
         SaveTranslations(this, key, _reflection.MainTableReflection);
         foreach (var table in _reflection.ConnectedTables())
