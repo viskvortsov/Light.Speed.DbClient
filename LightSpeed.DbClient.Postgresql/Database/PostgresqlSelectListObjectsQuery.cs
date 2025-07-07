@@ -1276,7 +1276,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         {
             string field = column.QueryName();
             string table = column.Table().QueryName();
-            string searchField = $"{table}.{field}";
+            string foreignKeyName = column.ForeignKeyName();
+            string searchField = $"{foreignKeyName}.{field}";
             _tableReplacements.Add(searchField, $"{column.ForeignKeyTable().QueryName()}_{a}");
             a++;
         }
@@ -1286,7 +1287,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         {
             string field = column.QueryName();
             string table = column.ForeignKeyTable().QueryName();
-            string searchField = $"{table}.{field}";
+            string foreignKeyName = column.ForeignKeyName();
+            string searchField = $"{foreignKeyName}.{field}";
             _tableReplacements.Add(searchField, $"{column.AdditionalForeignKeyTable().QueryName()}_{a}");
             a++;
         }
@@ -1297,7 +1299,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             {
                 string field = column.QueryName();
                 string table = column.ForeignKeyTable().QueryName();
-                string searchField = $"{table}.{field}";
+                string foreignKeyName = column.ForeignKeyName();
+                string searchField = $"{foreignKeyName}.{field}";
                 _tableReplacements.Add(searchField, $"{column.ForeignKeyTable().QueryName()}_{a}");
                 _translationsTableReplacements.Add(searchField, $"{column.TranslationsQueryName()}_{a}");
                 a++;
@@ -1310,7 +1313,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
             {
                 string field = column.QueryName();
                 string table = column.ForeignKeyTable().QueryName();
-                string searchField = $"{table}.{field}";
+                string foreignKeyName = column.ForeignKeyName();
+                string searchField = $"{foreignKeyName}.{field}";
                 _tableReplacements.Add(searchField, $"{column.ForeignKeyTable().QueryName()}_{a}");
                 _translationsTableReplacements.Add(searchField, $"{column.TranslationsQueryName()}_{a}");
                 a++;
@@ -1329,7 +1333,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         
         string table = column.Table().QueryName();
         string queryName = column.ForeignKeyTable().QueryName();
-        string searchField = $"{table}.{field}";
+        string foreignKeyName = column.ForeignKeyName();
+        string searchField = $"{foreignKeyName}.{field}";
         if (_tableReplacements.ContainsKey(searchField))
         {
             queryName = _tableReplacements[searchField];
@@ -1342,7 +1347,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         string field = column.AdditionalForeignKeyColumn().QueryName();
         string table = column.ForeignKeyTable().QueryName();
         string queryName = column.ForeignKeyTable().QueryName();
-        string searchField = $"{table}.{field}";
+        string foreignKeyName = column.ForeignKeyName();
+        string searchField = $"{foreignKeyName}.{field}";
         if (_tableReplacements.ContainsKey(searchField))
         {
             queryName = _tableReplacements[searchField];
@@ -1355,7 +1361,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         string field = column.QueryName();
         string table = column.ForeignKeyTable().QueryName();
         string queryName = column.ForeignKeyTable().QueryName();
-        string searchField = $"{table}.{field}";
+        string foreignKeyName = column.ForeignKeyName();
+        string searchField = $"{foreignKeyName}.{field}";
         if (_tableReplacements.ContainsKey(searchField))
         {
             queryName = _tableReplacements[searchField];
@@ -1368,7 +1375,8 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         string field = column.QueryName();
         string table = column.ForeignKeyTable().QueryName();
         string queryName = column.TranslationsQueryName();
-        string searchField = $"{table}.{field}";
+        string foreignKeyName = column.ForeignKeyName();
+        string searchField = $"{foreignKeyName}.{field}";
         if (_translationsTableReplacements.ContainsKey(searchField))
         {
             queryName = _translationsTableReplacements[searchField];

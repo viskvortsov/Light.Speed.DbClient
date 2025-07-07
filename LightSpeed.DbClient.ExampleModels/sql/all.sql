@@ -1,6 +1,6 @@
 create table attributes
 (
-    id uuid not null primary key,
+    id   uuid not null primary key,
     name uuid not null
 );
 
@@ -19,48 +19,48 @@ create table attributes_translations
 
 create table companies
 (
-    id uuid not null primary key,
+    id          uuid not null primary key,
     currency_id uuid not null
 );
 
 create table currencies
 (
-    id uuid not null primary key,
-    name varchar(255) not null,
-    deleted varchar not null,
+    id         uuid         not null primary key,
+    name       varchar(255) not null,
+    deleted    varchar      not null,
     deleted_at timestamptz,
-    upload boolean,
-    rate1 decimal,
-    rate2 float,
-    rate3 int,
-    rate4 numeric,
-    rate5 float
+    upload     boolean,
+    rate1      decimal,
+    rate2      float,
+    rate3      int,
+    rate4      numeric,
+    rate5      float
 );
 
 create table exchange_rates
 (
-    id uuid not null primary key,
-    row_number int not null,
-    owner_id  uuid not null
+    id         uuid not null primary key,
+    row_number int  not null,
+    owner_id   uuid not null
 );
 
 create table currency_codes
 (
-    id uuid not null primary key,
-    owner_id  uuid not null,
-    code varchar not null
+    id       uuid    not null primary key,
+    owner_id uuid    not null,
+    code     varchar not null
 );
 
 create table product_types
 (
-    id int not null PRIMARY KEY,
-    name   uuid not null
+    id   int  not null PRIMARY KEY,
+    name uuid not null
 );
 
 create table product_type_translations
 (
     language_id uuid not null,
-    source_id   int not null
+    source_id   int  not null
         constraint owner_product_type
             references product_types
             on delete restrict,
@@ -72,17 +72,17 @@ create table product_type_translations
 
 create table products
 (
-    id uuid not null primary key,
-    name uuid not null,
-    product_type int not null
+    id           uuid not null primary key,
+    name         uuid not null,
+    product_type int  not null
 );
 
 create table product_attributes
 (
-    id uuid not null primary key,
-    owner_id uuid not null,
+    id        uuid not null primary key,
+    owner_id  uuid not null,
     attribute uuid not null,
-    value uuid not null
+    value     uuid not null
 );
 
 create table products_translations
@@ -100,18 +100,18 @@ create table products_translations
 
 create table self_references
 (
-    id uuid not null,
-    code int GENERATED ALWAYS AS IDENTITY,
-    name varchar(255) not null,
-    self_id uuid not null,
+    id      uuid         not null,
+    code    int GENERATED ALWAYS AS IDENTITY,
+    name    varchar(255) not null,
+    self_id uuid         not null,
     constraint self_reference_id
         primary key (id)
 );
 
 create table prices
 (
-    product uuid not null,
-    variant uuid not null,
+    product   uuid not null,
+    variant   uuid not null,
     listprice numeric,
     saleprice numeric,
     constraint prices_pk primary key (product, variant)
@@ -119,14 +119,16 @@ create table prices
 
 create table enum_examples
 (
-    id int not null primary key,
-    name uuid not null
+    id    int  not null primary key,
+    name  uuid not null,
+    type1 int  not null,
+    type2 int  not null
 );
 
 create table enum_example_translations
 (
     language_id uuid not null,
-    source_id   int not null
+    source_id   int  not null
         constraint owner_enum_examples
             references enum_examples
             on delete restrict,

@@ -15,6 +15,20 @@ public class EnumExample : DatabaseObject
     [Column(name: "name")]
     public ITranslatable Name { get; set; }
     
+    [Column(name: "type1")]
+    [ForeignKey("product_type_fk_1", model:typeof(ProductType), columnName: "id")]
+    public ProductType.Value type1 { get; set; }
+    
+    [AddInfo("product_type_fk_1", "name")]
+    public ITranslatable ProductTypeName1 { get; set; }
+    
+    [Column(name: "type2")]
+    [ForeignKey("product_type_fk_2", model:typeof(ProductType), columnName: "id")]
+    public ProductType.Value type2 { get; set; }
+    
+    [AddInfo("product_type_fk_2", "name")]
+    public ITranslatable ProductTypeName2 { get; set; }
+    
     public EnumExample(ModelType modelType) : base(modelType)
     {
     }
