@@ -320,6 +320,25 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
                     throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
                 }
             }
+            foreach (IConnectedTable connectedTable in Reflection.TranslationTables())
+            {
+                if (await reader.NextResultAsync())
+                {
+                    List<IDatabaseObjectTableElement> list = new ();
+                    while (await reader.ReadAsync())
+                    {
+                        List<object?> values = GetAllValues(reader, connectedTable.TableReflection());
+                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
+                        row = _mapper.MapFromDatabaseToModel(connectedTable.TableReflection(), row, values);
+                        list.Add(row);
+                    }
+                    ConvertToTable(connectedTable.Property(), receivedElement, list);
+                }
+                else
+                {
+                    throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
+                }
+            }
             await reader.CloseAsync();
         } 
         catch (Exception e)
