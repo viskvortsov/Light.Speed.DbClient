@@ -122,7 +122,8 @@ create table enum_examples
     id    int  not null primary key,
     name  uuid not null,
     type1 int  not null,
-    type2 int  not null
+    type2 int  not null,
+    self_ref uuid not null
 );
 
 create table enum_example_translations
