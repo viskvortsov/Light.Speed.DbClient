@@ -1287,7 +1287,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         {
             string field = column.QueryName();
             string table = column.ForeignKeyTable().QueryName();
-            string foreignKeyName = column.ForeignKeyName();
+            string foreignKeyName = column.AdditionalForeignKeyName();
             string searchField = $"{foreignKeyName}.{field}";
             _tableReplacements.Add(searchField, $"{column.AdditionalForeignKeyTable().QueryName()}_{a}");
             a++;
@@ -1361,7 +1361,7 @@ public class PostgresqlSelectListObjectsQuery<T>: IQuery where T : IDatabaseElem
         string field = column.QueryName();
         string table = column.ForeignKeyTable().QueryName();
         string queryName = column.ForeignKeyTable().QueryName();
-        string foreignKeyName = column.ForeignKeyName();
+        string foreignKeyName = column.AdditionalForeignKeyName();
         string searchField = $"{foreignKeyName}.{field}";
         if (_tableReplacements.ContainsKey(searchField))
         {
