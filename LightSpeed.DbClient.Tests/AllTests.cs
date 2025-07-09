@@ -719,4 +719,46 @@ public class Tests
         
     }
     
+    [Test]
+    public async Task TestSaveTranslatable()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction);
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        attribute.Name.AddTranslation(Guid.NewGuid(), "test attribute");
+        
+        await attributeManager.SaveAsync(attribute);
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction);
+        Product product = productManager.CreateObject();
+        product.Id = Guid.NewGuid();
+        product.Name = new Translatable();
+        product.ProductType = ProductType.Value.Product;
+
+        ITranslatable value = new Translatable();
+        ITranslatable attributeName = new Translatable();
+        attributeName.AddTranslation(Guid.NewGuid(), "test attribute");
+        AttributeRow row = new AttributeRow
+        {
+            Id = Guid.NewGuid(),
+            Attribute = attribute.Id,
+            AttributeName = attributeName,
+            Value = value,
+        };
+        product.Attributes = new DatabaseObjectTable<AttributeRow>();
+        product.Attributes.Add(row);
+        
+        var result = await productManager.SaveAsync(product);
+        
+        Assert.NotNull(result.Attributes);
+        Assert.That(result.Attributes.Count, Is.EqualTo(1));
+        Assert.That(result.Translations.Count, Is.EqualTo(0));
+        
+    }
+    
 }
