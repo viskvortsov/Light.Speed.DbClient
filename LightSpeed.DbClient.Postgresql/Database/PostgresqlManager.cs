@@ -174,6 +174,12 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
 
     private async Task ProcessConnectedTable(IConnectedTable connectedTable, Dictionary<IKey, T> elements, NpgsqlDataReader reader)
     {
+
+        foreach (var element in elements)
+        {
+            element.Value.Table(connectedTable.Name());
+        }
+        
         if (await reader.NextResultAsync())
         {
             List<IDatabaseObjectTableElement> list = new ();
@@ -295,6 +301,26 @@ public class PostgresqlManager<T> : Manager<T> where T : IDatabaseObject
             }
 
             foreach (IConnectedTable connectedTable in Reflection.ConnectedTables())
+            {
+                receivedElement.Table(connectedTable.Name());
+                if (await reader.NextResultAsync())
+                {
+                    List<IDatabaseObjectTableElement> list = new ();
+                    while (await reader.ReadAsync())
+                    {
+                        List<object?> values = GetAllValues(reader, connectedTable.TableReflection());
+                        IDatabaseObjectTableElement row = (IDatabaseObjectTableElement) CreateRow(connectedTable.TableReflection().Type());
+                        row = _mapper.MapFromDatabaseToModel(connectedTable.TableReflection(), row, values);
+                        list.Add(row);
+                    }
+                    ConvertToTable(connectedTable.Property(), receivedElement, list);
+                }
+                else
+                {
+                    throw new DatabaseException($"Error getting element by key, No information for table {connectedTable.QueryName()}");
+                }
+            }
+            foreach (IConnectedTable connectedTable in Reflection.TranslationTables())
             {
                 if (await reader.NextResultAsync())
                 {

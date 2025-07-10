@@ -572,6 +572,11 @@ public class Tests
         IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
         await manager.GetListAsync();
         
+        SelfReference ob = manager.CreateObject();
+        ob.Name = "name";
+        ob.Id = Guid.NewGuid();
+        var ob2 = await manager.SaveAsync(ob);
+        
         await transaction.DisposeAsync();
         await db.DisposeAsync();
 
@@ -585,6 +590,11 @@ public class Tests
         ITransaction transaction = await connection.BeginTransactionAsync();
 
         IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
+        
+        SelfReference ob = manager.CreateObject();
+        ob.Name = "name";
+        var ob2 = await manager.SaveAsync(ob);
+        
         IFilters<SelfReference> filters = manager.CreateFilters();
         var filterValues = new List<string>();
         filterValues.Add("%versace%");
@@ -633,6 +643,122 @@ public class Tests
         await transaction.DisposeAsync();
         await db.DisposeAsync();
 
+    }
+    
+    [Test]
+    public async Task TestEnum()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<EnumExample> manager = new PostgresqlManager<EnumExample>(connection, transaction);
+        await manager.DeleteAsync();
+        await manager.GetListAsync();
+        
+        EnumExample ob = manager.CreateObject();
+        ob.Name = new Translatable();
+        ob.Name.AddTranslation(Guid.NewGuid(), "name");
+        ob.Id = EnumExample.Value.First;
+        var ob2 = await manager.SaveAsync(ob);
+        
+        Assert.That(ob2.Name.AllTranslations().Count, Is.EqualTo(1));
+        
+        EnumExample ob3 = manager.CreateObject();
+        ob3.Name = new Translatable();
+        ob3.Name.AddTranslation(Guid.NewGuid(), "name");
+        ob3.Id = EnumExample.Value.First;
+        var ob4 = await manager.SaveAsync(ob3);
+        
+        Assert.That(ob4.Name.AllTranslations().Count, Is.EqualTo(1));
+
+        var ob5 = await manager.GetByKeyAsync(new IntKey<EnumExample>(1));
+        Assert.That(ob5.Name.AllTranslations().Count, Is.EqualTo(1));
+        
+        await transaction.CommitAsync();
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestConnectedTableSave()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction);
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        
+        await attributeManager.SaveAsync(attribute);
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction);
+        Product product = productManager.CreateObject();
+        product.Id = Guid.NewGuid();
+        product.Name = new Translatable();
+        product.ProductType = ProductType.Value.Product;
+
+        ITranslatable value = new Translatable();
+        AttributeRow row = new AttributeRow
+        {
+            Id = Guid.NewGuid(),
+            Attribute = attribute.Id,
+            Value = value,
+        };
+        product.Attributes = new DatabaseObjectTable<AttributeRow>();
+        product.Attributes.Add(row);
+        
+        var result = await productManager.SaveAsync(product);
+        
+        Assert.NotNull(result.Attributes);
+        Assert.That(result.Attributes.Count, Is.EqualTo(1));
+        
+    }
+    
+    [Test]
+    public async Task TestSaveTranslatable()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction);
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        attribute.Name.AddTranslation(Guid.NewGuid(), "test attribute");
+        
+        await attributeManager.SaveAsync(attribute);
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction);
+        Product product = productManager.CreateObject();
+        product.Id = Guid.NewGuid();
+        product.Name = new Translatable();
+        product.ProductType = ProductType.Value.Product;
+
+        ITranslatable value = new Translatable();
+        ITranslatable attributeName = new Translatable();
+        attributeName.AddTranslation(Guid.NewGuid(), "test attribute");
+        AttributeRow row = new AttributeRow
+        {
+            Id = Guid.NewGuid(),
+            Attribute = attribute.Id,
+            AttributeName = attributeName,
+            Value = value,
+        };
+        product.Attributes = new DatabaseObjectTable<AttributeRow>();
+        product.Attributes.Add(row);
+        
+        var result = await productManager.SaveAsync(product);
+        
+        Assert.NotNull(result.Attributes);
+        Assert.That(result.Attributes.Count, Is.EqualTo(1));
+        Assert.That(result.Translations.Count, Is.EqualTo(0));
+        
     }
     
 }
