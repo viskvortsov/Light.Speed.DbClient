@@ -97,7 +97,7 @@ public class ColumnReflection : IColumnReflection
             _foreignKeyTable = foreignKeyColumn.ForeignKeyTableLink();
             _foreignKeyName = additionalInfo.ForeignKey;
             _foreignKeyType = foreignKeyColumn.Table().Type();
-            _foreignKeyColumnName = foreignKeyColumn.QueryName();
+            _foreignKeyColumnName = foreignKeyColumn.Name();
             
             _queryName = additionalInfo.Field.ToLower();
             
