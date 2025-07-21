@@ -4,5 +4,5 @@ public interface IConnection : IDisposable, IAsyncDisposable
 {
 
     Task<ITransaction> BeginTransactionAsync();
-
+    Task CloseAsync();
 }
