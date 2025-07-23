@@ -258,6 +258,12 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
         {
             int index2 = 0;
             var table = element.Table(connectedTable.Name());
+            if (table.Count == 0)
+            {
+                index4++;
+                continue;
+            }
+            
             foreach (object row in table)
             {
                 int index3 = 0;
