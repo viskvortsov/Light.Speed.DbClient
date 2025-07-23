@@ -814,6 +814,13 @@ public class Tests
             products.Add(product);
 
         }
+        
+        Product product2 = productManager.CreateObject();
+        product2.Id = Guid.NewGuid();
+        product2.Name = new Translatable();
+        product2.ProductType = ProductType.Value.Product;
+        
+        products.Add(product2);
 
         var result = await productManager.SaveManyAsync(products);
         await transaction.CommitAsync();
