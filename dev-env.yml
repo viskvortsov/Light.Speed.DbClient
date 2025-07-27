@@ -1,0 +1,49 @@
+services:
+
+  backend:
+    #https://hub.docker.com/_/postgres
+    container_name: backend
+    restart: always
+    build:
+      ./postgres/postgres-init
+    environment:
+      # Created and used for initial DB setup and scripts executing
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: mysecretpassword
+      POSTGRES_DB: postgres
+      PGDATA: /var/lib/postgresql/data/pgdata
+      # Used in database itself
+      DB_NAME: backend
+      DB_USER_NAME: postgres
+      # DB data restoring options
+      FILL_PROD_DATA: true
+      FILL_TEST_DATA: true
+    ports:
+      - 5432:5432
+    volumes:
+      - ./build/dev/data/postgresql:/var/lib/postgresql/data/pgdata
+      # You can change postgres settings in ./postgres/postgresql.conf
+      - ./postgres/postgresql.conf:/var/lib/postgresql/data/postgresql.conf
+      # You can add init scripts here
+      - ./postgres/postgres-init/docker-entrypoint-initdb.d:/docker-entrypoint-initdb.d
+      # You can add test data here
+      - ./postgres/postgres-init/data:/data
+
+  pgbouncer:
+    # https://hub.docker.com/r/bitnami/pgbouncer
+    image: bitnami/pgbouncer:latest
+    container_name: pgbouncer
+    restart: always
+    environment:
+      - POSTGRESQL_HOST=backend
+      - POSTGRESQL_PORT=5432
+      - POSTGRESQL_USERNAME=backend
+      - POSTGRESQL_PASSWORD=mysecretpassword
+      - PGBOUNCER_PORT=6432
+      - PGBOUNCER_POOL_MODE=transaction
+      - PGBOUNCER_MAX_CLIENT_CONN=100
+      - PGBOUNCER_DEFAULT_POOL_SIZE=20
+    ports:
+      - 6432:6432
+    depends_on:
+      - backend
