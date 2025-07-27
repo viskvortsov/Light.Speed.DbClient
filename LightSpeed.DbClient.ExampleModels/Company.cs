@@ -1,8 +1,9 @@
+using ExampleModels.Currencies;
 using LightSpeed.DbClient.Attributes;
 using LightSpeed.DbClient.Implementations;
 using LightSpeed.DbClient.Models;
 
-namespace ExampleModels.Currencies;
+namespace LightSpeed.DbClient.ExampleModels;
 
 [Model(table: "companies")]
 public class Company : DatabaseObject
@@ -19,7 +20,7 @@ public class Company : DatabaseObject
     public string CurrencyName { get; set; }
     
     [AddInfo("currency_fk", "rate1")]
-    public int CurrencyRate { get; set; }
+    public Decimal CurrencyRate { get; set; }
     
     public string NotInDatabase { get; set; }
     

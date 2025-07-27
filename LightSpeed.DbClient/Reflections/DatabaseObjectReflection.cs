@@ -34,6 +34,12 @@ public class DatabaseObjectReflection
                ?? throw new ReflectionException($"Column {name} not found");
     }
     
+    public IColumnReflection GetColumnReflectionByQueryName(string name)
+    {
+        return _mainTableReflection.Columns().SingleOrDefault(x => x.QueryName() == name.ToLower()) 
+               ?? throw new ReflectionException($"Column {name} not found");
+    }
+    
     public IConnectedTable GetTableReflection(string name)
     {
         return _connectedTables.SingleOrDefault(x => x.Name() == name.ToLower())

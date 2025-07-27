@@ -92,20 +92,45 @@ public abstract class DatabaseObject : IDatabaseObject
         return _modelType == Models.ModelType.Row;
     }
 
-    public void BeforeSave()
+    public virtual void BeforeSave()
     {
-        
         // TODO current implementation only supports objects with Guid or Int as primary key
         IEnumerable<IColumnReflection> partsOfPrimaryKey = _reflection.MainTableReflection.PartsOfPrimaryKey();
         if (partsOfPrimaryKey.Count() != 1)
             throw new ReflectionException("Only objects with a single primary key column are supported");
-        
-        object? key = _reflection.MainTableReflection.PartsOfPrimaryKey().First().Property().GetValue(this);
+
+        PropertyInfo propertyKey = _reflection.MainTableReflection.PartsOfPrimaryKey().First().Property();
+        object? key = propertyKey.GetValue(this);
         if (!(key is Guid) && !(key.GetType().IsEnum))
             throw new ReflectionException("Only objects with a single primary key column of type Guid or Int are supported");
         
+        if (key is Guid)
+        {
+            Guid guidkey = (Guid) key;
+            if (guidkey == Guid.Empty)
+            {
+                guidkey = Guid.NewGuid();
+                propertyKey.SetValue(this, guidkey);
+            }
+        }
+        
+        object? objectKey = propertyKey.GetValue(this);
+        foreach (IConnectedTable connectedTable in _reflection.ConnectedTables())
+        {
+            IEnumerable<IColumnReflection> ownerKey = connectedTable.TableReflection().PartsOfOwnerKey();
+            var columnReflections = ownerKey.ToList();
+            if (columnReflections.Count() != 1)
+                throw new ReflectionException("Only connected table with a single owner key column are supported");
+            PropertyInfo ownerKeyProperty = columnReflections.First().Property();
+            IDatabaseObjectTable table = Table(connectedTable.Name());
+            foreach (var row in table)
+            {
+                ownerKeyProperty.SetValue(row, objectKey);
+            }
+        }
+        
         Translations.Clear();
-        SaveTranslations(this, key, _reflection.MainTableReflection);
+        SaveTranslations(this, objectKey, _reflection.MainTableReflection);
         foreach (var table in _reflection.ConnectedTables())
         {
             PropertyInfo property = table.Property();
@@ -113,21 +138,21 @@ public abstract class DatabaseObject : IDatabaseObject
             if (rows == null) continue;
             foreach (var row in rows)
             {
-                SaveTranslations((IDatabaseElement) row, key, table.TableReflection());
+                SaveTranslations((IDatabaseElement) row, objectKey, table.TableReflection());
             }
         }
     }
 
-    public void BeforeDelete()
+    public virtual void BeforeDelete()
     {
     }
 
-    public void BeforeGetReference()
+    public virtual void BeforeGetReference()
     {
         FillTableTranslations(this, _reflection.MainTableReflection);
     }
 
-    public void BeforeGetObject()
+    public virtual void BeforeGetObject()
     {
         FillTableTranslations(this, _reflection.MainTableReflection);
         foreach (var table in _reflection.ConnectedTables())
@@ -147,6 +172,10 @@ public abstract class DatabaseObject : IDatabaseObject
     {
         foreach (var column in table.TranslatableColumns())
         {
+            
+            if (!table.Columns().Contains(column))
+                continue;
+                
             PropertyInfo property = column.Property();
             Type type = property.PropertyType;
             object? value = property.GetValue(element);
@@ -161,6 +190,7 @@ public abstract class DatabaseObject : IDatabaseObject
                 row.Content = translation.Value;
                 Translations.Add(row);
             }
+            
         }
     }
     

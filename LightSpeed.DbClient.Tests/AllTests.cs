@@ -1,6 +1,7 @@
 using ExampleModels;
 using ExampleModels.Currencies;
 using LightSpeed.DbClient.Database;
+using LightSpeed.DbClient.ExampleModels;
 using LightSpeed.DbClient.Implementations;
 using LightSpeed.DbClient.Models;
 using LightSpeed.DbClient.Postgresql.Database;
@@ -122,7 +123,7 @@ public class Tests
         foreach (int i in Enumerable.Range(1, 10000))
         {
             Currency currency = manager.CreateObject();
-            currency.Id = Guid.NewGuid();
+            //currency.Id = Guid.NewGuid();
             currency.Name = "Euro";
             currency.Deleted = "dj";
             currency.ExchangeRates = new DatabaseObjectTable<ExchangeRateRow>();
@@ -141,7 +142,84 @@ public class Tests
         Assert.That(currencies2.Count(), Is.EqualTo(10000));
         
         await transaction.CommitAsync();
-
+        
+        IDataSelection<Currency> cur1 = await manager.GetListAsync(1, 1000);
+        Assert.NotNull(cur1);
+        Assert.That(cur1.Count(), Is.EqualTo(1000));
+        Assert.That(cur1.Page, Is.EqualTo(1));
+        Assert.That(cur1.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur1.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur2 = await manager.GetListAsync(2, 1000);
+        Assert.NotNull(cur2);
+        Assert.That(cur2.Count(), Is.EqualTo(1000));
+        Assert.That(cur2.Page, Is.EqualTo(2));
+        Assert.That(cur2.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur2.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur3 = await manager.GetListAsync(3, 1000);
+        Assert.NotNull(cur3);
+        Assert.That(cur3.Count(), Is.EqualTo(1000));
+        Assert.That(cur3.Page, Is.EqualTo(3));
+        Assert.That(cur3.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur3.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur4 = await manager.GetListAsync(4, 1000);
+        Assert.NotNull(cur4);
+        Assert.That(cur4.Count(), Is.EqualTo(1000));
+        Assert.That(cur4.Page, Is.EqualTo(4));
+        Assert.That(cur4.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur4.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur5 = await manager.GetListAsync(5, 1000);
+        Assert.NotNull(cur5);
+        Assert.That(cur5.Count(), Is.EqualTo(1000));
+        Assert.That(cur5.Page, Is.EqualTo(5));
+        Assert.That(cur5.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur5.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur6 = await manager.GetListObjectsAsync(6, 1000);
+        Assert.NotNull(cur6);
+        Assert.That(cur6.Count(), Is.EqualTo(1000));
+        Assert.That(cur6.Page, Is.EqualTo(6));
+        Assert.That(cur6.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur6.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur7 = await manager.GetListObjectsAsync(7, 1000);
+        Assert.NotNull(cur7);
+        Assert.That(cur7.Count(), Is.EqualTo(1000));
+        Assert.That(cur7.Page, Is.EqualTo(7));
+        Assert.That(cur7.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur7.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur8 = await manager.GetListObjectsAsync(8, 1000);
+        Assert.NotNull(cur8);
+        Assert.That(cur8.Count(), Is.EqualTo(1000));
+        Assert.That(cur8.Page, Is.EqualTo(8));
+        Assert.That(cur8.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur8.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur9 = await manager.GetListObjectsAsync(9, 1000);
+        Assert.NotNull(cur9);
+        Assert.That(cur9.Count(), Is.EqualTo(1000));
+        Assert.That(cur9.Page, Is.EqualTo(9));
+        Assert.That(cur9.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur9.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur10 = await manager.GetListObjectsAsync(10, 1000);
+        Assert.NotNull(cur10);
+        Assert.That(cur10.Count(), Is.EqualTo(1000));
+        Assert.That(cur10.Page, Is.EqualTo(10));
+        Assert.That(cur10.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur10.TotalRows, Is.EqualTo(10000));
+        
+        IDataSelection<Currency> cur11 = await manager.GetListObjectsAsync(11, 1000);
+        Assert.NotNull(cur11);
+        Assert.That(cur11.Count(), Is.EqualTo(0));
+        Assert.That(cur11.Page, Is.EqualTo(11));
+        Assert.That(cur11.RowsPerBatch, Is.EqualTo(1000));
+        Assert.That(cur11.TotalRows, Is.EqualTo(10000));
+        
         await transaction.DisposeAsync();
         await connection.DisposeAsync();
         await db.DisposeAsync();
@@ -149,7 +227,7 @@ public class Tests
     }
 
     [Test]
-    public async Task Test1()
+    public async Task TestGeneral()
     {
         IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
         IConnection connection = await db.OpenConnectionAsync();
@@ -258,7 +336,7 @@ public class Tests
     }
     
      [Test]
-    public async Task Test4()
+    public async Task TestConnectedTableFilter()
     {
         IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
         IConnection connection = await db.OpenConnectionAsync();
@@ -453,7 +531,7 @@ public class Tests
         //Assert.That(product1.Translations.Count, Is.EqualTo(3));
         //Assert.That(product1.Name.AllTranslations().Count, Is.EqualTo(2));
         
-        IEnumerable<Product> products2 = await productManager.GetListObjectsAsync(1, 100);
+        IEnumerable<Product> products2 = await productManager.GetListObjectsAsync(1, 1000);
         var list4 = products2.ToList();
         
         //var product2 = list4[0];
@@ -473,10 +551,282 @@ public class Tests
         var product30 = list30[0];
         Assert.That(list30.Count, Is.EqualTo(1));
         Assert.That(product30.Name.GetTranslation(spanishMock), Is.EqualTo("Producto 1 Versace"));
-
+        
+        long n = await productManager.CountAsync(filters);
+        Assert.That(n, Is.EqualTo(1));
+        n = await productManager.CountAsync();
+        Assert.That(n, Is.EqualTo(2));
+        
         await transaction.DisposeAsync();
         await db.DisposeAsync();
 
+    }
+    
+    [Test]
+    public async Task TestSelfReference()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
+        await manager.GetListAsync();
+        
+        SelfReference ob = manager.CreateObject();
+        ob.Name = "name";
+        ob.Id = Guid.NewGuid();
+        var ob2 = await manager.SaveAsync(ob);
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestFilterIn()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<SelfReference> manager = new PostgresqlManager<SelfReference>(connection, transaction);
+        
+        SelfReference ob = manager.CreateObject();
+        ob.Name = "name";
+        var ob2 = await manager.SaveAsync(ob);
+        
+        IFilters<SelfReference> filters = manager.CreateFilters();
+        var filterValues = new List<string>();
+        filterValues.Add("%versace%");
+        filterValues.Add("%gucci%");
+        
+        filters.Add(new Filter<SelfReference>("name", ComparisonOperator.In, filterValues));
+        await manager.GetListAsync(filters);
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestRecords()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<Price> manager = new PostgresqlManager<Price>(connection, transaction);
+        
+        Price price = manager.CreateObject();
+        price.Product = Guid.NewGuid();
+        price.Variant = Guid.NewGuid();
+        price.ListPrice = 100;
+        price.SalePrice = 80;
+        
+        IFilters<Price> filters = manager.CreateFilters();
+        filters.Add(new Filter<Price>("product", ComparisonOperator.Equals, price.Product));
+        filters.Add(new Filter<Price>("variant", ComparisonOperator.Equals, price.Variant));
+        await manager.DeleteAsync();
+        await manager.SaveRecordsAsync(filters, price);
+        
+        var prices1 = await manager.GetListAsync();
+        Assert.That(prices1.Count, Is.EqualTo(1));
+        
+        var prices2 = await manager.GetListObjectsAsync();
+        Assert.That(prices2.Count, Is.EqualTo(1));
+        
+        long l = await manager.CountAsync();
+        Assert.That(l, Is.EqualTo(1));
+
+        await transaction.CommitAsync();
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestEnum()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+
+        IManager<EnumExample> manager = new PostgresqlManager<EnumExample>(connection, transaction);
+        await manager.DeleteAsync();
+        await manager.GetListAsync();
+        
+        EnumExample ob = manager.CreateObject();
+        ob.Name = new Translatable();
+        ob.Name.AddTranslation(Guid.NewGuid(), "name");
+        ob.Id = EnumExample.Value.First;
+        var ob2 = await manager.SaveAsync(ob);
+        
+        Assert.That(ob2.Name.AllTranslations().Count, Is.EqualTo(1));
+        
+        EnumExample ob3 = manager.CreateObject();
+        ob3.Name = new Translatable();
+        ob3.Name.AddTranslation(Guid.NewGuid(), "name");
+        ob3.Id = EnumExample.Value.First;
+        var ob4 = await manager.SaveAsync(ob3);
+        
+        Assert.That(ob4.Name.AllTranslations().Count, Is.EqualTo(1));
+
+        var ob5 = await manager.GetByKeyAsync(new IntKey<EnumExample>(1));
+        Assert.That(ob5.Name.AllTranslations().Count, Is.EqualTo(1));
+        
+        await transaction.CommitAsync();
+        
+        await transaction.DisposeAsync();
+        await db.DisposeAsync();
+
+    }
+    
+    [Test]
+    public async Task TestConnectedTableSave()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction);
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        
+        await attributeManager.SaveAsync(attribute);
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction);
+        Product product = productManager.CreateObject();
+        product.Id = Guid.NewGuid();
+        product.Name = new Translatable();
+        product.ProductType = ProductType.Value.Product;
+
+        ITranslatable value = new Translatable();
+        AttributeRow row = new AttributeRow
+        {
+            Id = Guid.NewGuid(),
+            Attribute = attribute.Id,
+            Value = value,
+        };
+        product.Attributes = new DatabaseObjectTable<AttributeRow>();
+        product.Attributes.Add(row);
+        
+        var result = await productManager.SaveAsync(product);
+        
+        Assert.NotNull(result.Attributes);
+        Assert.That(result.Attributes.Count, Is.EqualTo(1));
+        
+    }
+    
+    [Test]
+    public async Task TestSaveTranslatable()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction);
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        attribute.Name.AddTranslation(Guid.NewGuid(), "test attribute");
+        
+        await attributeManager.SaveAsync(attribute);
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction);
+        Product product = productManager.CreateObject();
+        product.Id = Guid.NewGuid();
+        product.Name = new Translatable();
+        product.ProductType = ProductType.Value.Product;
+
+        ITranslatable value = new Translatable();
+        value.AddTranslation(Guid.NewGuid(), "Fire!");
+        ITranslatable attributeName = new Translatable();
+        attributeName.AddTranslation(Guid.NewGuid(), "test attribute");
+        AttributeRow row = new AttributeRow
+        {
+            Id = Guid.NewGuid(),
+            Attribute = attribute.Id,
+            AttributeName = attributeName,
+            Value = value,
+        };
+        product.Attributes = new DatabaseObjectTable<AttributeRow>();
+        product.Attributes.Add(row);
+        
+        var result = await productManager.SaveAsync(product);
+        
+        Assert.NotNull(result.Attributes);
+        Assert.That(result.Attributes.Count, Is.EqualTo(1));
+        Assert.That(result.Translations.Count, Is.EqualTo(1));
+        
+    }
+    
+    [Test]
+    public async Task TestSaveMany()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction);
+        
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        attribute.Name.AddTranslation(Guid.NewGuid(), "test attribute 2");
+
+        await attributeManager.SaveManyAsync([attribute]);
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction);
+        
+        List<Product> products = new List<Product>();
+        
+        Product product1 = productManager.CreateObject();
+        product1.Id = Guid.NewGuid();
+        product1.Name = new Translatable();
+        product1.ProductType = ProductType.Value.Product;
+        
+        products.Add(product1);
+
+        foreach (int i in Enumerable.Range(1, 60000))
+        {
+
+            Product product = productManager.CreateObject();
+            product.Id = Guid.NewGuid();
+            product.Name = new Translatable();
+            product.ProductType = ProductType.Value.Product;
+
+            ITranslatable value = new Translatable();
+            value.AddTranslation(Guid.NewGuid(), "test value 1");;
+            ITranslatable attributeName = new Translatable();
+            attributeName.AddTranslation(Guid.NewGuid(), "test attribute");
+            AttributeRow row = new AttributeRow
+            {
+                Id = Guid.NewGuid(),
+                Attribute = attribute.Id,
+                AttributeName = attributeName,
+                Value = value,
+            };
+            product.Attributes = new DatabaseObjectTable<AttributeRow>();
+            product.Attributes.Add(row);
+            
+            products.Add(product);
+
+        }
+        
+        Product product2 = productManager.CreateObject();
+        product2.Id = Guid.NewGuid();
+        product2.Name = new Translatable();
+        product2.ProductType = ProductType.Value.Product;
+        
+        products.Add(product2);
+
+        var result = await productManager.SaveManyAsync(products);
+        await transaction.CommitAsync();
+        
+        Assert.NotNull(result);
+        
     }
     
 }

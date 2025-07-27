@@ -2,7 +2,7 @@ using LightSpeed.DbClient.Attributes;
 using LightSpeed.DbClient.Implementations;
 using LightSpeed.DbClient.Models;
 
-namespace ExampleModels.Currencies;
+namespace LightSpeed.DbClient.ExampleModels;
 
 [Model(table: "currency_codes")]
 public class CurrencyCodeRow : DatabaseObjectTableElement

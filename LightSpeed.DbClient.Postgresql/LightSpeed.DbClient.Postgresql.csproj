@@ -1,0 +1,18 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+        <IsPackable>true</IsPackable>
+        <RootNamespace>LightSpeed.DbClient.Postgresql</RootNamespace>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Npgsql" Version="8.0.7" />
+    </ItemGroup>
+    
+    <ItemGroup>
+        <ProjectReference Include="..\LightSpeed.DbClient\LightSpeed.DbClient.csproj" />
+    </ItemGroup>
+</Project>

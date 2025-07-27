@@ -80,9 +80,13 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
+            if (column.IsReadOnly())
+            {
+                continue;
+            }
             columnNamesBuilder.Append($"{column.QueryName()}");
-            if (i < columns.Count - 1)
-                columnNamesBuilder.Append(",");
+                if (i < columns.Count - 1)
+                    columnNamesBuilder.Append(",");
         }
         
         for (int l = 0; l < _elements.Count; l++)
@@ -95,6 +99,10 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
             for (int i = 0; i < columns.Count; i++)
             {
                 var column = columns[i];
+                if (column.IsReadOnly())
+                {
+                    continue;
+                }
                 var property = column.Property();
                 var value = property.GetValue(element);
                 var type = property.PropertyType;
@@ -133,6 +141,10 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
         for (int i = 0; i < columns.Count; i++)
         {
             var column = columns[i];
+            if (column.IsReadOnly())
+            {
+                continue;
+            }
             sb.Append($"{column.QueryName()} = EXCLUDED.{column.QueryName()}");
             if (i < columns.Count - 1)
                 sb.Append(", ");
@@ -241,8 +253,18 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
         sb.Append($"VALUES");
         sb.Append($" ");
         
-        int index4 = 0;
+        List<T> onlyElementsWithRows = new List<T>();
         foreach (var element in _elements)
+        {
+            var table = element.Table(connectedTable.Name());
+            if (table.Count != 0)
+            {
+                onlyElementsWithRows.Add(element);
+            }
+        } 
+        
+        int index4 = 0;
+        foreach (var element in onlyElementsWithRows)
         {
             int index2 = 0;
             var table = element.Table(connectedTable.Name());
@@ -266,10 +288,11 @@ public class PostgresqlSaveManyQueries<T>(DatabaseObjectReflection reflection, I
                     sb.Append(",");
                 index2++;
             }
-            if (index4 < _elements.Count - 1)
+            if (index4 < onlyElementsWithRows.Count - 1)
                 sb.Append(",");
             index4++;
         }
+        
         sb.Append($" ");
         sb.Append($"RETURNING");
         sb.Append(" ");
