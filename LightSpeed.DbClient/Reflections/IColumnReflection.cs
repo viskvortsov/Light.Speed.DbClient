@@ -5,6 +5,7 @@ namespace LightSpeed.DbClient.Reflections;
 
 public interface IColumnReflection
 {
+    bool IsReadOnly();
     string Name();
     string QueryName();
     string TranslationsQueryName();
@@ -14,11 +15,15 @@ public interface IColumnReflection
     ITableReflection Table();
     bool IsPartOfPrimaryKey();
     bool IsPartOfOwnerKey();
-    bool HasAdditionalFields();
     bool IsTranslatable();
     bool HasForeignKeyTable();
-    IEnumerable<IColumnReflection?> AdditionalFields();
+    bool HasAdditionalForeignKeyTable();
     public string ForeignKeyName();
+    public string AdditionalForeignKeyName();
     ITableReflection ForeignKeyTable();
+    ITableReflection AdditionalForeignKeyTable();
+    IForeignKeyTable ForeignKeyTableLink();
     IColumnReflection ForeignKeyColumn();
+    IColumnReflection AdditionalForeignKeyColumn();
+    string AdditionalForeignKeyColumnName();
 }

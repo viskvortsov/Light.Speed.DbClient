@@ -1,4 +1,5 @@
 using LightSpeed.DbClient.Attributes;
+using LightSpeed.DbClient.ExampleModels;
 using LightSpeed.DbClient.Implementations;
 using LightSpeed.DbClient.Models;
 

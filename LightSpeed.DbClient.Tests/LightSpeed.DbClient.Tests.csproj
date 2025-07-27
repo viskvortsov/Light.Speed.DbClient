@@ -25,7 +25,7 @@
     <ItemGroup>
         <ProjectReference Include="..\LightSpeed.DbClient\LightSpeed.DbClient.csproj" />
         <ProjectReference Include="..\LightSpeed.DbClient.ExampleModels\LightSpeed.DbClient.ExampleModels.csproj" />
-        <ProjectReference Include="..\LightSpeed.DBClient.Postgresql\LightSpeed.DBClient.Postgresql.csproj" />
+        <ProjectReference Include="..\LightSpeed.DbClient.Postgresql\LightSpeed.DbClient.Postgresql.csproj" />
     </ItemGroup>
 
 </Project>

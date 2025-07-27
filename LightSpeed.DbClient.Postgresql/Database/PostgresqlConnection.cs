@@ -18,6 +18,11 @@ public class PostgresqlConnection : IConnection
         return new PostgresqlTransaction(innerTransaction);
     }
 
+    public async Task CloseAsync()
+    {
+        await InnerConnection.CloseAsync();
+    }
+
     public void Dispose()
     {
         InnerConnection.Dispose();

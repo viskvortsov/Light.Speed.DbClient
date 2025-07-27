@@ -16,24 +16,26 @@ public interface IManager<T> : IDisposable, IAsyncDisposable where T : IDatabase
     // pagination test
     
     // TODO sorting by translated field
-
+    
     T CreateObject();
     T CreateReference();
     IFilters<T> CreateFilters();
-    Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null);
-    Task<IEnumerable<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null);
-    Task<IEnumerable<T>> GetListAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
-    Task<IEnumerable<T>> GetListAsync(int? page = null, int? limit = null);
+    Task<IDataSelection<T>> GetListAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    Task<IDataSelection<T>> GetListAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null);
+    Task<IDataSelection<T>> GetListAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
+    Task<IDataSelection<T>> GetListAsync(int? page = null, int? limit = null);
     
-    Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null);
-    Task<IEnumerable<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null);
-    Task<IEnumerable<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
-    Task<IEnumerable<T>> GetListObjectsAsync(int? page = null, int? limit = null);
+    Task<IDataSelection<T>> GetListObjectsAsync(IFilters<T> filters, int? page = null, int? limit = null);
+    Task<IDataSelection<T>> GetListObjectsAsync(IFilters<T> filters, ISorting<T> sortBy, int? page = null, int? limit = null);
+    Task<IDataSelection<T>> GetListObjectsAsync(ISorting<T> sortBy, int? page = null, int? limit = null);
+    Task<IDataSelection<T>> GetListObjectsAsync(int? page = null, int? limit = null);
     Task<T> GetByKeyAsync(IKey key);
-    Task<int> CountAsync(IFilters<T> filters);
-    Task<int> CountAsync();
+    Task<long> CountAsync(IFilters<T> filters);
+    Task<long> CountAsync();
     Task<T> SaveAsync(T element);
-    Task<IEnumerable<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000);
+    Task<IDataSelection<T>> SaveManyAsync(IEnumerable<T> elements, int chunkSize = 1000);
+    Task<T> SaveRecordsAsync(IFilters<T> filters, T element);
+    Task<IDataSelection<T>> SaveRecordsAsync(IFilters<T> filters, IEnumerable<T> elements, int chunkSize = 1000);
     Task<int> DeleteAsync();
     Task<int> DeleteAsync(IFilters<T> filters);
     Task<int> DeleteByKeyAsync(IKey key);
