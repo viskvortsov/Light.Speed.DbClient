@@ -741,6 +741,7 @@ public class Tests
         product.ProductType = ProductType.Value.Product;
 
         ITranslatable value = new Translatable();
+        value.AddTranslation(Guid.NewGuid(), "Fire!");
         ITranslatable attributeName = new Translatable();
         attributeName.AddTranslation(Guid.NewGuid(), "test attribute");
         AttributeRow row = new AttributeRow
@@ -757,7 +758,74 @@ public class Tests
         
         Assert.NotNull(result.Attributes);
         Assert.That(result.Attributes.Count, Is.EqualTo(1));
-        Assert.That(result.Translations.Count, Is.EqualTo(0));
+        Assert.That(result.Translations.Count, Is.EqualTo(1));
+        
+    }
+    
+    [Test]
+    public async Task TestSaveMany()
+    {
+        IDatabase db = new PostgresqlDatabase("localhost",5432,"backend", "backend", "mysecretpassword");
+        IConnection connection = await db.OpenConnectionAsync();
+        ITransaction transaction = await connection.BeginTransactionAsync();
+        
+        IManager<ProductAttribute> attributeManager = new PostgresqlManager<ProductAttribute>(connection, transaction);
+        
+        ProductAttribute attribute = attributeManager.CreateObject();
+        attribute.Id = Guid.NewGuid();
+        attribute.Name = new Translatable();
+        attribute.Name.AddTranslation(Guid.NewGuid(), "test attribute 2");
+
+        await attributeManager.SaveManyAsync([attribute]);
+        
+        IManager<Product> productManager = new PostgresqlManager<Product>(connection, transaction);
+        
+        List<Product> products = new List<Product>();
+        
+        Product product1 = productManager.CreateObject();
+        product1.Id = Guid.NewGuid();
+        product1.Name = new Translatable();
+        product1.ProductType = ProductType.Value.Product;
+        
+        products.Add(product1);
+
+        foreach (int i in Enumerable.Range(1, 60000))
+        {
+
+            Product product = productManager.CreateObject();
+            product.Id = Guid.NewGuid();
+            product.Name = new Translatable();
+            product.ProductType = ProductType.Value.Product;
+
+            ITranslatable value = new Translatable();
+            value.AddTranslation(Guid.NewGuid(), "test value 1");;
+            ITranslatable attributeName = new Translatable();
+            attributeName.AddTranslation(Guid.NewGuid(), "test attribute");
+            AttributeRow row = new AttributeRow
+            {
+                Id = Guid.NewGuid(),
+                Attribute = attribute.Id,
+                AttributeName = attributeName,
+                Value = value,
+            };
+            product.Attributes = new DatabaseObjectTable<AttributeRow>();
+            product.Attributes.Add(row);
+            
+            products.Add(product);
+
+        }
+        
+        Product product2 = productManager.CreateObject();
+        product2.Id = Guid.NewGuid();
+        product2.Name = new Translatable();
+        product2.ProductType = ProductType.Value.Product;
+        
+        products.Add(product2);
+
+        var result = await productManager.SaveManyAsync(products);
+        await transaction.CommitAsync();
+        
+        Assert.NotNull(result);
         
     }
     
